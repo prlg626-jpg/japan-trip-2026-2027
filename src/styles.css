@@ -21,6 +21,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
   color: var(--ink);
   background:
     linear-gradient(135deg, rgba(103, 85, 238, 0.11), transparent 36%),
@@ -43,6 +44,8 @@ a {
 
 .appShell {
   min-height: 100vh;
+  width: 100%;
+  overflow-x: clip;
 }
 
 .authGate {
@@ -93,6 +96,7 @@ a {
 
 .mainPane {
   width: min(1480px, 100%);
+  min-width: 0;
   margin: 0 auto;
   padding: 14px 14px 96px;
 }
@@ -129,6 +133,7 @@ a {
 }
 
 .screen {
+  min-width: 0;
   animation: fadeIn 0.18s ease-out;
 }
 
@@ -504,6 +509,8 @@ a {
 .dayRail {
   display: flex;
   gap: 9px;
+  max-width: 100%;
+  min-width: 0;
   overflow: auto;
   padding-bottom: 10px;
 }
@@ -544,6 +551,7 @@ a {
   grid-template-columns: 1fr;
   gap: 14px;
   margin-top: 8px;
+  min-width: 0;
 }
 
 .timelinePanel {
@@ -592,6 +600,7 @@ a {
 
 .mapPanel {
   min-height: 480px;
+  min-width: 0;
   position: sticky;
   top: 16px;
 }
@@ -1038,7 +1047,7 @@ a {
 @media (min-width: 1120px) {
   .appShell {
     display: grid;
-    grid-template-columns: 236px 1fr;
+    grid-template-columns: 236px minmax(0, 1fr);
   }
 
   .sideNav {
