@@ -8,6 +8,7 @@
 .activityCard.category-explore,.activityCard.category-tourism,.activityCard.category-nature{background:var(--baby-pink)!important}
 .activityCard.category-shopping,.activityCard.category-anime,.activityCard.category-gaming{background:var(--baby-yellow)!important}
 .activityCard.category-museum{background:#eef5ff!important}
+.priceScopeText{display:none!important}
 .routeSummary{margin:12px 0;border:0!important;background:transparent!important;padding:0!important}
 .routeSummary details{border:1px solid rgba(32,30,48,.10);background:#fff;border-radius:16px;padding:10px 14px}
 .routeSummary summary{cursor:pointer;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -19,4 +20,4 @@
 .zonePlaceTitle{display:flex;justify-content:space-between;gap:8px}.zonePlaceTitle h4{font-size:1.05rem;margin:.25rem 0}.placeType{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:850;color:#696478}.placeDescription{margin:.5rem 0 .65rem;line-height:1.42}.placeMeta{display:flex!important;flex-wrap:wrap;gap:6px!important}.placeMeta span{background:rgba(255,255,255,.72);border-radius:999px;padding:5px 8px;font-size:.78rem}.placePrice{font-weight:850}
 .selectPlaceBig{width:100%;margin-top:10px;border:0;border-radius:12px;padding:10px 12px;font-weight:850;background:#fff;cursor:pointer}.selected .selectPlaceBig{background:#211d3e;color:#fff}.zonePlaceCard .actionRow{margin-top:8px}.zoneActions{margin-top:10px!important}
 .mapMarker.candidate{width:26px!important;height:26px!important;border:3px solid white!important;background:#fff!important;color:#5b5670!important;box-shadow:0 2px 7px rgba(0,0,0,.22)!important;font-size:14px!important}.mapMarker.hotel{background:#a8ddff!important;color:#12263a!important}.mapMarker.category-experience{background:#cfc1ff!important}.mapMarker.category-food,.mapMarker.category-cafe{background:#bfeac5!important}.mapMarker.category-transport{background:#ffd7a0!important}.mapMarker.category-tourism,.mapMarker.category-explore,.mapMarker.category-nature,.mapMarker.category-market{background:#ffcddd!important}.mapMarker.category-shopping,.mapMarker.category-anime,.mapMarker.category-gaming{background:#ffeaa0!important}
-@media(max-width:700px){.zonePlaceList{grid-template-columns:1fr}.zoneHeader{padding:13px}.activityCard{border-radius:16px!important}}
+@media(max-width:700px){.zonePlaceList{grid-template-columns:1fr}.zoneHeader{padding:13px}.activityCard{border-radius:16px!important}.routeSummary summary{align-items:flex-start;flex-direction:column}}
