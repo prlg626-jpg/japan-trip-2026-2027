@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function tripDoc(tripId) {
+      return /databases/$(database)/documents/trips/$(tripId);
+    }
+
+    function memberDoc(tripId, uid) {
+      return /databases/$(database)/documents/trips/$(tripId)/members/$(uid);
+    }
+
+    function isMember(tripId) {
+      return signedIn() && exists(memberDoc(tripId, request.auth.uid));
+    }
+
+    function isOwner(tripId) {
+      return isMember(tripId)
+        && get(memberDoc(tripId, request.auth.uid)).data.role == 'owner';
+    }
+
+    match /trips/{tripId} {
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow get: if signedIn();
+      allow list: if false;
+      allow update: if isMember(tripId);
+      allow delete: if isOwner(tripId);
+
+      match /members/{userId} {
+        allow read: if isMember(tripId);
+        allow create: if signedIn()
+          && (
+            isOwner(tripId)
+            || (
+              userId == request.auth.uid
+              && get(tripDoc(tripId)).data.createdBy == request.auth.uid
+              && request.resource.data.role == 'owner'
+            )
+          );
+        allow update, delete: if isOwner(tripId);
+      }
+
+      match /days/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /activities/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /hotels/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /purchases/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /reservations/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /sources/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /library/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+
+      match /settings/{docId} {
+        allow read, write: if isMember(tripId);
+      }
+      match /zones/{docId} { allow read, write: if isMember(tripId); }
+      match /zonePlaces/{docId} { allow read, write: if isMember(tripId); }
+      match /routeSegments/{docId} { allow read, write: if isMember(tripId); }
+      match /documents/{docId} { allow read, write: if isMember(tripId); }
+
+    }
+  }
+}
