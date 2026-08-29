@@ -1,0 +1,22 @@
+/* V8: card-first planner */
+:root{--baby-blue:#edf7ff;--baby-lilac:#f4efff;--baby-orange:#fff2df;--baby-green:#edf9ee;--baby-pink:#fff0f6;--baby-yellow:#fff8dc}
+.activityCard{border:1px solid rgba(32,30,48,.10)!important;box-shadow:0 8px 22px rgba(28,24,55,.06)!important}
+.activityCard.category-hotel,.hotelLinkCard{background:var(--baby-blue)!important}
+.activityCard.category-experience{background:var(--baby-lilac)!important}
+.activityCard.category-transport{background:var(--baby-orange)!important}
+.activityCard.category-food{background:var(--baby-green)!important}
+.activityCard.category-explore,.activityCard.category-tourism,.activityCard.category-nature{background:var(--baby-pink)!important}
+.activityCard.category-shopping,.activityCard.category-anime,.activityCard.category-gaming{background:var(--baby-yellow)!important}
+.activityCard.category-museum{background:#eef5ff!important}
+.routeSummary{margin:12px 0;border:0!important;background:transparent!important;padding:0!important}
+.routeSummary details{border:1px solid rgba(32,30,48,.10);background:#fff;border-radius:16px;padding:10px 14px}
+.routeSummary summary{cursor:pointer;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.routeSummary .routeSegmentList{margin-top:10px;display:grid;gap:8px}.routeSegment{border-radius:12px!important;background:var(--baby-orange)!important;border:0!important}
+.zoneExplorer{margin-top:16px!important;background:transparent!important;border:0!important;padding:0!important}.zoneHeader{background:#fff;border:1px solid rgba(32,30,48,.10);border-radius:18px;padding:16px;display:block!important}.zoneHeader h3{margin:.2rem 0}.zoneHeader p{margin:.25rem 0;color:#676477}
+.zoneSelector{display:flex;gap:8px;overflow:auto;padding:10px 0 2px}.zoneSelector button{white-space:nowrap;border:1px solid #dedbe8;background:#fff;border-radius:999px;padding:8px 12px;font-weight:750}.zoneSelector button.active{background:#211d3e;color:#fff;border-color:#211d3e}
+.zonePlaceList{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px!important;margin-top:12px}.zonePlaceCard{position:relative;border:1px solid rgba(32,30,48,.10)!important;border-radius:18px!important;padding:14px!important;display:block!important;box-shadow:0 7px 18px rgba(28,24,55,.05)}
+.zonePlaceCard.category-food,.zonePlaceCard.category-cafe{background:var(--baby-green)}.zonePlaceCard.category-experience{background:var(--baby-lilac)}.zonePlaceCard.category-tourism,.zonePlaceCard.category-explore,.zonePlaceCard.category-nature,.zonePlaceCard.category-market{background:var(--baby-pink)}.zonePlaceCard.category-shopping,.zonePlaceCard.category-anime,.zonePlaceCard.category-gaming{background:var(--baby-yellow)}.zonePlaceCard.category-museum{background:#eef5ff}.zonePlaceCard.selected{outline:3px solid rgba(103,85,238,.28)}
+.zonePlaceTitle{display:flex;justify-content:space-between;gap:8px}.zonePlaceTitle h4{font-size:1.05rem;margin:.25rem 0}.placeType{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:850;color:#696478}.placeDescription{margin:.5rem 0 .65rem;line-height:1.42}.placeMeta{display:flex!important;flex-wrap:wrap;gap:6px!important}.placeMeta span{background:rgba(255,255,255,.72);border-radius:999px;padding:5px 8px;font-size:.78rem}.placePrice{font-weight:850}
+.selectPlaceBig{width:100%;margin-top:10px;border:0;border-radius:12px;padding:10px 12px;font-weight:850;background:#fff;cursor:pointer}.selected .selectPlaceBig{background:#211d3e;color:#fff}.zonePlaceCard .actionRow{margin-top:8px}.zoneActions{margin-top:10px!important}
+.mapMarker.candidate{width:26px!important;height:26px!important;border:3px solid white!important;background:#fff!important;color:#5b5670!important;box-shadow:0 2px 7px rgba(0,0,0,.22)!important;font-size:14px!important}.mapMarker.hotel{background:#a8ddff!important;color:#12263a!important}.mapMarker.category-experience{background:#cfc1ff!important}.mapMarker.category-food,.mapMarker.category-cafe{background:#bfeac5!important}.mapMarker.category-transport{background:#ffd7a0!important}.mapMarker.category-tourism,.mapMarker.category-explore,.mapMarker.category-nature,.mapMarker.category-market{background:#ffcddd!important}.mapMarker.category-shopping,.mapMarker.category-anime,.mapMarker.category-gaming{background:#ffeaa0!important}
+@media(max-width:700px){.zonePlaceList{grid-template-columns:1fr}.zoneHeader{padding:13px}.activityCard{border-radius:16px!important}}
