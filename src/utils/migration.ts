@@ -1,5 +1,6 @@
 import initialTrip from "../data/initialTrip.json";
 import type { Activity, TripState } from "../types";
+import { enrichTripStateV8 } from "./v8Enrichment";
 
 export function normalizeActivityV7(input: Partial<Activity> & Pick<Activity, "id" | "dayId" | "title">): Activity {
   const transport = input.displayMode === "transport" || input.category === "transport";
@@ -56,12 +57,11 @@ export function normalizeActivityV7(input: Partial<Activity> & Pick<Activity, "i
 }
 
 export function migrateStoredState(stored: TripState): TripState {
-  if (stored.schemaVersion >= 7 && stored.zones && stored.zonePlaces && stored.documents) return stored;
+  if (stored.schemaVersion >= 7 && stored.zones && stored.zonePlaces && stored.documents) return enrichTripStateV8(stored);
   const base = structuredClone(initialTrip as TripState);
-  // Preserve user-generated financial/history data that is safe to carry forward.
   if (stored.purchases?.length) base.purchases = stored.purchases;
   if (stored.settings?.fx) base.settings.fx = stored.settings.fx;
   if (stored.settings?.authorizedUserEmails) base.settings.authorizedUserEmails = stored.settings.authorizedUserEmails;
   base.notes = { ...base.notes, ...(stored.notes ?? {}) };
-  return base;
+  return enrichTripStateV8(base);
 }
