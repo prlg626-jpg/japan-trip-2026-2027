@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Activity, SourceLink, TripDay } from "../types";
+import type { Activity, SourceLink, TripDay, Zone } from "../types";
 import { Modal } from "./Modal";
 
 interface ActivityEditorProps {
   activity: Activity | null;
   days: TripDay[];
   sources: SourceLink[];
+  zones?: Zone[];
   open: boolean;
   onClose: () => void;
   onSave: (activity: Activity, source?: SourceLink) => void;
@@ -24,6 +25,7 @@ export function ActivityEditor({
   activity,
   days,
   sources,
+  zones = [],
   open,
   onClose,
   onSave,
@@ -128,6 +130,35 @@ export function ActivityEditor({
           Lugar
           <input value={draft.place} onChange={(event) => update("place", event.target.value)} />
         </label>
+        <label className="full">
+          Descripción · ¿qué es?
+          <textarea value={draft.description} rows={3} onChange={(event) => update("description", event.target.value)} />
+        </label>
+        <label>
+          Zona
+          <select value={draft.zoneId ?? ""} onChange={(event) => update("zoneId", event.target.value || null)}>
+            <option value="">Sin zona</option>
+            {zones.map((zone) => <option value={zone.id} key={zone.id}>{zone.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Presentación
+          <select value={draft.displayMode} onChange={(event) => update("displayMode", event.target.value as Activity["displayMode"])}>
+            <option value="anchor">Ancla con hora</option><option value="flex-list">Lista flexible</option><option value="transport">Transporte</option><option value="hotel">Hotel</option><option value="timed">Con hora</option>
+          </select>
+        </label>
+        <label>
+          Categoría
+          <select value={draft.category} onChange={(event) => update("category", event.target.value)}>
+            <option value="experience">Experiencia</option><option value="transport">Transporte</option><option value="food">Comida / café</option><option value="explore">Explorar</option><option value="shopping">Compras</option><option value="museum">Museo</option><option value="nature">Naturaleza</option><option value="anime">Anime / gaming</option>
+          </select>
+        </label>
+        <label>
+          Ranking
+          <select value={draft.priorityRank} onChange={(event) => update("priorityRank", event.target.value as Activity["priorityRank"])}>
+            <option value="essential">Imprescindible</option><option value="recommended">Recomendado</option><option value="nearby">Si queda cerca</option><option value="niche">Nicho</option>
+          </select>
+        </label>
         <label>
           Latitud
           <input
@@ -155,6 +186,24 @@ export function ActivityEditor({
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Alcance del precio
+          <select value={draft.priceScope} onChange={(event) => update("priceScope", event.target.value as Activity["priceScope"])}>
+            <option value="per_person">Por persona</option><option value="for_two">Total para dos</option><option value="per_item">Por producto</option><option value="free">Gratis</option><option value="variable">Variable</option><option value="included">Incluido</option><option value="unknown">Por verificar</option>
+          </select>
+        </label>
+        <label>
+          Precio explicado
+          <input value={draft.priceLabel} onChange={(event) => update("priceLabel", event.target.value)} />
+        </label>
+        <label>
+          ¿Requiere reserva?
+          <select value={draft.reservationRequired ? "yes":"no"} onChange={(event) => update("reservationRequired", event.target.value === "yes")}><option value="no">No</option><option value="yes">Sí</option></select>
+        </label>
+        <label>
+          Cierre / festivo
+          <input value={draft.holidayNote} onChange={(event) => update("holidayNote", event.target.value)} />
         </label>
         <label>
           Precio estimado COP

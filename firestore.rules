@@ -75,6 +75,11 @@ service cloud.firestore {
       match /settings/{docId} {
         allow read, write: if isMember(tripId);
       }
+      match /zones/{docId} { allow read, write: if isMember(tripId); }
+      match /zonePlaces/{docId} { allow read, write: if isMember(tripId); }
+      match /routeSegments/{docId} { allow read, write: if isMember(tripId); }
+      match /documents/{docId} { allow read, write: if isMember(tripId); }
+
     }
   }
 }

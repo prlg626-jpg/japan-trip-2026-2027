@@ -11,6 +11,7 @@ import type {
   TripState,
 } from "../types";
 import { libraryToActivity, normalizeOrders } from "../utils/trip";
+import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -21,7 +22,7 @@ function cleanState(state: TripState): TripState {
 function loadInitialState(): TripState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return cleanState(JSON.parse(saved) as TripState);
+    if (saved) return cleanState(migrateStoredState(JSON.parse(saved) as TripState));
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
@@ -66,32 +67,13 @@ export function useTripStore() {
     (dayId: string, activity?: Partial<Activity>) =>
       mutate((draft) => {
         const order = draft.activities.filter((item) => item.dayId === dayId).length;
-        draft.activities.push({
+        draft.activities.push(normalizeActivityV7({
+          ...activity,
           id: activity?.id ?? uid("act"),
           dayId,
           order,
-          start: activity?.start ?? "",
-          end: activity?.end ?? "",
-          durationMinutes: null,
           title: activity?.title ?? "Nueva actividad",
-          place: activity?.place ?? "",
-          kind: activity?.kind ?? "experience",
-          lat: activity?.lat ?? null,
-          lon: activity?.lon ?? null,
-          bookingUrl: activity?.bookingUrl ?? "",
-          googleMapsUrl: activity?.googleMapsUrl ?? "",
-          legacyStatus: activity?.legacyStatus ?? "",
-          status: activity?.status ?? "idea",
-          note: activity?.note ?? "",
-          priority: Boolean(activity?.priority),
-          included: activity?.included ?? true,
-          flexible: activity?.flexible ?? true,
-          fixed: Boolean(activity?.fixed),
-          sourceIds: activity?.sourceIds ?? [],
-          costItemId: activity?.costItemId ?? null,
-          estimatedCostCOP: activity?.estimatedCostCOP ?? 0,
-          actualPaidCOP: activity?.actualPaidCOP ?? 0,
-        });
+        }));
       }),
     [mutate],
   );
@@ -219,6 +201,44 @@ export function useTripStore() {
     [mutate],
   );
 
+  const updateZonePlace = useCallback(
+    (place: TripState["zonePlaces"][number]) =>
+      mutate((draft) => {
+        draft.zonePlaces = draft.zonePlaces.map((item) => (item.id === place.id ? place : item));
+      }),
+    [mutate],
+  );
+
+  const updateDocument = useCallback(
+    (document: TripState["documents"][number]) =>
+      mutate((draft) => {
+        draft.documents = draft.documents.map((item) => (item.id === document.id ? document : item));
+      }),
+    [mutate],
+  );
+
+  const selectRecommendedZonePlaces = useCallback(
+    (dayId: string, zoneIds: string[]) =>
+      mutate((draft) => {
+        draft.zonePlaces.forEach((place) => {
+          if (zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId) {
+            place.selected = place.priorityRank === "essential" || place.priorityRank === "recommended";
+          }
+        });
+      }),
+    [mutate],
+  );
+
+  const clearZonePlaces = useCallback(
+    (dayId: string, zoneIds: string[]) =>
+      mutate((draft) => {
+        draft.zonePlaces.forEach((place) => {
+          if (zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId) place.selected = false;
+        });
+      }),
+    [mutate],
+  );
+
   const saveSource = useCallback(
     (source: SourceLink) =>
       mutate((draft) => {
@@ -276,6 +296,10 @@ export function useTripStore() {
       saveReservation,
       updateLibraryItem,
       addLibraryToItinerary,
+      updateZonePlace,
+      updateDocument,
+      selectRecommendedZonePlaces,
+      clearZonePlaces,
       saveSource,
       importBackup,
       exportBackup,
@@ -299,6 +323,10 @@ export function useTripStore() {
       saveReservation,
       updateLibraryItem,
       addLibraryToItinerary,
+      updateZonePlace,
+      updateDocument,
+      selectRecommendedZonePlaces,
+      clearZonePlaces,
       saveSource,
       importBackup,
       exportBackup,

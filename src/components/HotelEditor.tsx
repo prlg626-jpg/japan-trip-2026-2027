@@ -55,12 +55,32 @@ export function HotelEditor({ hotel, open, onClose, onSave }: HotelEditorProps) 
           <input type="number" min="0" value={draft.nights} onChange={(event) => update("nights", Number(event.target.value) || 0)} />
         </label>
         <label>
+          Noches cotizadas
+          <input type="number" min="0" value={draft.quotedNights} onChange={(event) => update("quotedNights", Number(event.target.value) || 0)} />
+        </label>
+        <label>
+          Noches planificadas
+          <input type="number" min="0" value={draft.plannedNights} onChange={(event) => update("plannedNights", Number(event.target.value) || 0)} />
+        </label>
+        <label>
+          Cobertura cotización
+          <select value={draft.quoteCoverage} onChange={(event) => update("quoteCoverage", event.target.value as Hotel["quoteCoverage"])}><option value="full">Completa</option><option value="partial">Parcial</option><option value="none">Ninguna</option></select>
+        </label>
+        <label className="full">
+          Alerta de cotización
+          <input value={draft.quoteWarning} onChange={(event) => update("quoteWarning", event.target.value)} />
+        </label>
+        <label>
           Estado
           <input value={draft.status} onChange={(event) => update("status", event.target.value)} />
         </label>
         <label className="full">
-          Link
+          Link oficial
           <input value={draft.link} onChange={(event) => update("link", event.target.value)} />
+        </label>
+        <label className="full">
+          Klook · fotos y habitaciones
+          <input value={draft.klookUrl ?? ""} onChange={(event) => update("klookUrl", event.target.value)} />
         </label>
         <label className="full">
           Reserva
@@ -88,6 +108,10 @@ export function HotelEditor({ hotel, open, onClose, onSave }: HotelEditorProps) 
             onChange={(event) => update("lon", event.target.value === "" ? null : Number(event.target.value))}
           />
         </label>
+        <label>Check-in<input value={draft.checkIn} onChange={(event) => update("checkIn", event.target.value)} /></label>
+        <label>Check-out<input value={draft.checkOut} onChange={(event) => update("checkOut", event.target.value)} /></label>
+        <label>Plan de comida<input value={draft.mealPlan} onChange={(event) => update("mealPlan", event.target.value)} /></label>
+        <label>Archivado<select value={draft.archived?"yes":"no"} onChange={(event)=>update("archived",event.target.value==="yes")}><option value="no">No</option><option value="yes">Sí</option></select></label>
         <label className="full">
           Notas
           <textarea value={draft.notes} rows={4} onChange={(event) => update("notes", event.target.value)} />

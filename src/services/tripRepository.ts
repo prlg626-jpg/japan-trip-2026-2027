@@ -24,6 +24,10 @@ const COLLECTIONS = [
   "reservations",
   "sources",
   "library",
+  "zones",
+  "zonePlaces",
+  "routeSegments",
+  "documents",
 ] as const;
 
 type CollectionName = (typeof COLLECTIONS)[number];
@@ -106,6 +110,8 @@ export async function writeTripState(db: Firestore, state: TripState, tripId = t
       booked: state.booked,
       notes: state.notes,
       migrationReport: state.migrationReport,
+      ryokanCandidates: state.ryokanCandidates,
+      removedItems: state.removedItems,
       updatedAt: new Date().toISOString(),
     }),
     { merge: false },
@@ -121,6 +127,10 @@ export async function writeTripState(db: Firestore, state: TripState, tripId = t
     replaceCollection(db, id, "reservations", state.reservations),
     replaceCollection(db, id, "sources", state.sources),
     replaceCollection(db, id, "library", state.library),
+    replaceCollection(db, id, "zones", state.zones),
+    replaceCollection(db, id, "zonePlaces", state.zonePlaces),
+    replaceCollection(db, id, "routeSegments", state.routeSegments),
+    replaceCollection(db, id, "documents", state.documents),
   ]);
 }
 
@@ -152,6 +162,10 @@ export function subscribeTripState(
         reservations: (latest.reservations ?? []) as TripState["reservations"],
         sources: (latest.sources ?? []) as TripState["sources"],
         library: (latest.library ?? []) as TripState["library"],
+        zones: (latest.zones ?? []) as TripState["zones"],
+        zonePlaces: (latest.zonePlaces ?? []) as TripState["zonePlaces"],
+        routeSegments: (latest.routeSegments ?? []) as TripState["routeSegments"],
+        documents: (latest.documents ?? []) as TripState["documents"],
       },
       pending,
     );

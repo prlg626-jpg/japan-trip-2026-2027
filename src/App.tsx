@@ -40,12 +40,17 @@ import {
 } from "lucide-react";
 import { ActivityEditor } from "./components/ActivityEditor";
 import { HotelEditor } from "./components/HotelEditor";
+import { HotelLinkCard } from "./components/HotelLinkCard";
+import { ZoneExplorer } from "./components/ZoneExplorer";
+import { RouteSummary } from "./components/RouteSummary";
+import { RyokanComparison } from "./components/RyokanComparison";
+import { DocumentsScreen } from "./components/DocumentsScreen";
 import { MapView } from "./components/MapView";
 import { blankPurchase, PurchaseEditor } from "./components/PurchaseEditor";
 import { ReservationEditor } from "./components/ReservationEditor";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useTripStore } from "./hooks/useTripStore";
-import type { Activity, Hotel, LibraryItem, Purchase, Reservation, TripDay } from "./types";
+import type { Activity, Hotel, LibraryItem, Purchase, Reservation, TripDay, ZonePlace } from "./types";
 import { activityEstimate, calculateBudget, formatCOP, formatMoney, hotelExpectedCOP } from "./utils/money";
 import {
   activeActivitiesForDay,
@@ -58,6 +63,9 @@ import {
   sortedDays,
   statusLabel,
 } from "./utils/trip";
+import { buildDayRoute } from "./utils/route";
+import { documentSummary } from "./utils/documents";
+import { normalizeActivityV7 } from "./utils/migration";
 import "./styles.css";
 
 type Tab = "today" | "trip" | "map" | "money" | "more";
@@ -71,32 +79,15 @@ const navItems: Array<{ id: Tab; label: string; icon: typeof Home }> = [
 ];
 
 function emptyActivity(dayId: string, order: number): Activity {
-  return {
+  return normalizeActivityV7({
     id: `act-${Date.now()}`,
     dayId,
     order,
-    start: "",
-    end: "",
-    durationMinutes: null,
     title: "Nueva actividad",
-    place: "",
-    kind: "experience",
-    lat: null,
-    lon: null,
-    bookingUrl: "",
-    googleMapsUrl: "",
-    legacyStatus: "",
-    status: "idea",
-    note: "",
-    priority: false,
-    included: true,
-    flexible: true,
-    fixed: false,
-    sourceIds: [],
-    costItemId: null,
-    estimatedCostCOP: 0,
-    actualPaidCOP: 0,
-  };
+    category: "experience",
+    displayMode: "flex-list",
+    priceScope: "unknown",
+  });
 }
 
 function SyncPill({
@@ -147,6 +138,7 @@ function SortableActivityCard({
   onComplete,
   onMove,
   onReorder,
+  ordinal,
 }: {
   activity: Activity;
   day: TripDay;
@@ -158,6 +150,7 @@ function SortableActivityCard({
   onComplete: (activity: Activity) => void;
   onMove: (activityId: string, dayId: string) => void;
   onReorder: (activityId: string, overId: string) => void;
+  ordinal?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -172,13 +165,14 @@ function SortableActivityCard({
     <article
       ref={setNodeRef}
       style={style}
-      className={`activityCard ${activity.included ? "" : "inactive"} ${isDragging ? "dragging" : ""}`}
+      className={`activityCard category-${activity.category} ${activity.included ? "" : "inactive"} ${isDragging ? "dragging" : ""}`}
     >
       <button className="dragHandle" type="button" {...attributes} {...listeners} aria-label="Arrastrar">
         <GripVertical size={18} />
       </button>
+      {activity.included && ordinal ? <span className="activityOrdinal">{ordinal}</span> : null}
       <div className="activityTime">
-        <strong>{activity.start || "--:--"}</strong>
+        <strong>{activity.displayMode === "flex-list" ? "Flexible" : (activity.start || "--:--")}</strong>
         <span>{activity.end || ""}</span>
       </div>
       <div className="activityMain">
@@ -198,7 +192,10 @@ function SortableActivityCard({
           {activity.fixed ? <span className="cool">fija</span> : null}
           {estimate > 0 ? <span>{formatCOP(estimate)}</span> : null}
         </div>
-        {activity.note ? <p className="noteText">{activity.note}</p> : null}
+        {activity.description ? <p className="activityDescription">{activity.description}</p> : null}
+        {activity.priceLabel ? <p className="priceScopeText">{activity.priceLabel}{activity.priceDynamic ? " · precio dinámico" : ""}</p> : null}
+        {activity.holidayNote ? <p className="warningText">⚠ {activity.holidayNote}</p> : null}
+        {activity.note && activity.note !== activity.description ? <p className="noteText">{activity.note}</p> : null}
         <div className="actionRow">
           <a className="chipButton" href={mapsUrl} target="_blank" rel="noreferrer">
             <MapPin size={15} />
@@ -288,6 +285,7 @@ function App() {
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [libraryFilter, setLibraryFilter] = useState("all");
+  const [moreView, setMoreView] = useState<"home" | "documents" | "readiness">("home");
 
   useEffect(() => {
     if (selectedDayId !== "all" && !state.days.some((day) => day.id === selectedDayId)) {
@@ -299,6 +297,14 @@ function App() {
   const selectedActivities = selectedDay ? activitiesForDay(state, selectedDay.id) : [];
   const selectedActiveActivities = selectedActivities.filter((activity) => activity.included);
   const selectedHotel = selectedDay ? getHotelForDay(state, selectedDay.id) : null;
+  const selectedZones = selectedDay ? state.zones.filter((zone) => (selectedDay.zoneIds ?? []).includes(zone.id)) : [];
+  const selectedZonePlacesRaw = selectedDay ? state.zonePlaces.filter((place) => (selectedDay.zoneIds ?? []).includes(place.zoneId) && (!place.suggestedDayId || place.suggestedDayId === selectedDay.id)) : [];
+  const selectedActivityTitles = new Set(selectedActivities.map((activity) => activity.title.toLowerCase()));
+  const selectedZonePlaces = selectedZonePlacesRaw.filter((place) => !selectedActivityTitles.has(place.title.toLowerCase()));
+  const selectedMapActivities = selectedActiveActivities.filter((activity) => activity.displayMode !== "flex-list");
+  const dynamicRoute = selectedDay ? buildDayRoute(selectedDay.id, selectedHotel, selectedActivities, selectedZonePlaces, state.routeSegments) : { points: [], segments: [] };
+  const docSummary = documentSummary(state.documents);
+  const dayDocuments = selectedDay ? state.documents.filter((doc) => doc.tripSegments.includes(selectedDay.id)) : [];
   const budget = useMemo(() => calculateBudget(state), [state]);
   const allMapActivities = state.activities.filter((activity) => activity.included);
 
@@ -430,15 +436,16 @@ function App() {
             </div>
 
             <div className="todayGrid">
-              <article className="focusPanel">
+              <article className="focusPanel category-hotel">
                 <span>Hotel actual</span>
                 <h3>{todayHotel?.name ?? "Sin hotel"}</h3>
                 <p>{todayHotel?.address ?? "Pendiente por definir"}</p>
-                {todayHotel?.link ? (
-                  <a href={todayHotel.link} target="_blank" rel="noreferrer" className="chipButton">
-                    <ExternalLink size={15} />
-                    Hotel
-                  </a>
+                {todayHotel?.quoteWarning ? <small className="warningText">⚠ {todayHotel.quoteWarning}</small> : null}
+                {todayHotel ? (
+                  <div className="actionRow">
+                    {(todayHotel.klookUrl || todayHotel.link) ? <a href={todayHotel.klookUrl || todayHotel.link} target="_blank" rel="noreferrer" className="chipButton"><ExternalLink size={15} />Ver habitaciones y fotos</a> : null}
+                    <button className="chipButton" type="button" onClick={() => setEditingHotel(todayHotel)}>Editar</button>
+                  </div>
                 ) : null}
               </article>
 
@@ -476,6 +483,10 @@ function App() {
                 ) : null}
               </article>
             </div>
+
+            <button className="documentSummaryCard" type="button" onClick={() => { setTab("more"); setMoreView("documents"); }}>
+              <span>📄 Documentos de viaje</span><strong>{docSummary.ready} listos · {docSummary.pending} pendientes</strong><small>eTA, Visit Japan Web, pasaportes y seguro</small>
+            </button>
 
             <div className="sectionTitle">
               <h3>Restante del día</h3>
@@ -536,20 +547,9 @@ function App() {
                       Actividad
                     </button>
                   </div>
-                  {selectedHotel ? (
-                    <div className="routeNote">
-                      <Route size={17} />
-                      <div>
-                        <strong>{selectedHotel.name}</strong>
-                        <span>{selectedDay.dayRoute?.text ?? selectedDay.routeNote}</span>
-                      </div>
-                      {selectedDay.dayRoute?.googleMapsUrl ? (
-                        <a href={selectedDay.dayRoute.googleMapsUrl} target="_blank" rel="noreferrer">
-                          Maps
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  {selectedHotel && !selectedHotel.archived ? <HotelLinkCard hotel={selectedHotel} onEdit={setEditingHotel} /> : null}
+                  {dayDocuments.length ? <div className="dayDocuments">{dayDocuments.map((doc) => <span key={doc.id}>{["Aprobado","Completado"].includes(doc.status) ? "✅" : "⏳"} {doc.title} · {doc.travelerLabel}</span>)}</div> : null}
+                  {selectedDay.why ? <div className="zoneWhy"><strong>Por qué esta zona</strong><p>{selectedDay.why}</p></div> : null}
 
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={selectedActivities.map((activity) => activity.id)} strategy={verticalListSortingStrategy}>
@@ -567,17 +567,34 @@ function App() {
                             onComplete={(item) => store.updateActivity({ ...item, status: "completada" })}
                             onMove={(activityId, dayId) => store.moveActivity(activityId, dayId)}
                             onReorder={(activityId, overId) => store.reorderActivity(selectedDay.id, activityId, overId)}
+                            ordinal={activity.included ? selectedMapActivities.findIndex((item) => item.id === activity.id) + 1 : undefined}
                           />
                         ))}
                       </div>
                     </SortableContext>
                   </DndContext>
+
+                  <RouteSummary
+                    segments={dynamicRoute.segments}
+                    nameForId={(id) => state.activities.find((a) => a.id === id)?.title ?? state.zonePlaces.find((z) => z.id === id)?.title ?? state.hotels.find((h) => h.id === id)?.name ?? id}
+                  />
+                  <ZoneExplorer
+                    zones={selectedZones}
+                    places={selectedZonePlaces}
+                    ordinalOffset={selectedMapActivities.length}
+                    onToggle={store.updateZonePlace}
+                    onRecommended={() => store.selectRecommendedZonePlaces(selectedDay.id, selectedDay.zoneIds ?? [])}
+                    onClear={() => store.clearZonePlaces(selectedDay.id, selectedDay.zoneIds ?? [])}
+                  />
+                  {selectedDay.id === "2027-01-01" ? <RyokanComparison candidates={state.ryokanCandidates} /> : null}
                 </section>
                 <aside className="mapPanel">
                   <MapView
                     day={selectedDay}
-                    activities={selectedActiveActivities}
-                    hotels={selectedHotel ? [selectedHotel] : []}
+                    activities={selectedMapActivities}
+                    hotels={selectedHotel && !selectedHotel.archived ? [selectedHotel] : []}
+                    zonePlaces={selectedZonePlaces}
+                    routeSegments={dynamicRoute.segments}
                     height="100%"
                   />
                 </aside>
@@ -605,7 +622,9 @@ function App() {
             <MapView
               day={selectedDayId === "all" ? null : selectedDay}
               activities={selectedDayId === "all" ? allMapActivities : selectedActiveActivities}
-              hotels={selectedDayId === "all" ? state.hotels : selectedHotel ? [selectedHotel] : []}
+              hotels={selectedDayId === "all" ? state.hotels.filter((hotel) => !hotel.archived) : selectedHotel && !selectedHotel.archived ? [selectedHotel] : []}
+              zonePlaces={selectedDayId === "all" ? state.zonePlaces.filter((place) => place.selected) : selectedZonePlaces}
+              routeSegments={selectedDayId === "all" ? [] : dynamicRoute.segments}
               height="70vh"
             />
           </section>
@@ -665,7 +684,7 @@ function App() {
                   <h3>Hoteles</h3>
                 </div>
                 <div className="cardList">
-                  {state.hotels.map((hotel) => (
+                  {state.hotels.filter((hotel) => !hotel.archived).map((hotel) => (
                     <article className="hotelCard" key={hotel.id}>
                       <div>
                         <span>{hotel.city} · {hotel.nights} noches</span>
@@ -747,126 +766,63 @@ function App() {
 
         {tab === "more" ? (
           <section className="screen moreScreen">
-            <div className="moreGrid">
-              <section className="panelCard">
-                <div className="sectionTitle">
-                  <h3>Biblioteca / Shoe Lab</h3>
-                  <select value={libraryFilter} onChange={(event) => setLibraryFilter(event.target.value)}>
-                    <option value="all">Todo</option>
-                    <option value="calzado">Calzado / moda</option>
-                    <option value="extra">Experiencias extra</option>
-                    <option value="descartado">Descartado</option>
-                  </select>
-                </div>
-                <div className="libraryGrid">
-                  {state.library
-                    .filter((item) => libraryFilter === "all" || item.category === libraryFilter || item.status === libraryFilter)
-                    .map((item: LibraryItem) => (
-                      <article className={`libraryCard ${item.status}`} key={item.id}>
-                        <span>{item.category}</span>
-                        <h4>{item.title}</h4>
-                        <p>{item.place}</p>
-                        <small>{item.note}</small>
-                        <div className="actionRow">
-                          <select defaultValue={item.suggestedDate || days[0]?.id} id={`day-${item.id}`}>
-                            {days.map((day) => (
-                              <option value={day.id} key={day.id}>
-                                {day.label} · {day.city}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            className="chipButton"
-                            type="button"
-                            onClick={() => {
-                              const select = document.getElementById(`day-${item.id}`) as HTMLSelectElement | null;
-                              store.addLibraryToItinerary(item.id, select?.value ?? days[0].id);
-                            }}
-                          >
-                            Añadir
-                          </button>
-                          <button className="chipButton" type="button" onClick={() => store.updateLibraryItem({ ...item, status: "descartado" })}>
-                            Descartar
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                </div>
-              </section>
-
-              <section className="panelCard">
-                <div className="sectionTitle">
-                  <h3>Inspiración</h3>
-                </div>
-                <div className="sourceGrid">
-                  {state.sources.map((source) => (
-                    <article className="sourceCard" key={source.id}>
-                      <span>{source.type}</span>
-                      <h4>{source.handle || "Fuente"}</h4>
-                      <p>{source.note}</p>
-                      <div className="usedList">
-                        {source.associatedActivityIds.map((activityId) => {
-                          const activity = state.activities.find((item) => item.id === activityId);
-                          return activity ? <small key={activityId}>{activity.title}</small> : null;
-                        })}
-                      </div>
-                      <a className="chipButton" href={source.url} target="_blank" rel="noreferrer">
-                        Abrir publicación
-                      </a>
-                    </article>
-                  ))}
-                </div>
-              </section>
+            <div className="moreNav">
+              <button className={moreView === "home" ? "active" : ""} type="button" onClick={() => setMoreView("home")}>Más</button>
+              <button className={moreView === "documents" ? "active" : ""} type="button" onClick={() => setMoreView("documents")}>📄 Documentos · {docSummary.ready}/{docSummary.total}</button>
+              <button className={moreView === "readiness" ? "active" : ""} type="button" onClick={() => setMoreView("readiness")}>Antes de viajar</button>
             </div>
 
-            <section className="panelCard">
-              <div className="sectionTitle">
-                <h3>Respaldo</h3>
-                <div className="actionRow">
-                  <button className="primaryAction" type="button" onClick={store.exportBackup}>
-                    <Download size={16} />
-                    Exportar respaldo
-                  </button>
-                  <label className="primaryAction fileButton">
-                    <Upload size={16} />
-                    Importar respaldo
-                    <input
-                      type="file"
-                      accept=".json,application/json"
-                      hidden
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) importBackup(file);
-                        event.currentTarget.value = "";
-                      }}
-                    />
-                  </label>
-                  <button
-                    className="ghost danger"
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm("¿Restaurar el JSON base migrado y borrar cambios locales?")) {
-                        store.resetToInitial();
-                      }
-                    }}
-                  >
-                    Restaurar base
-                  </button>
+            {moreView === "documents" ? (
+              <DocumentsScreen documents={state.documents} hotels={state.hotels} reservations={state.reservations} onSave={store.updateDocument} />
+            ) : moreView === "readiness" ? (
+              <DocumentsScreen mode="readiness" documents={state.documents} hotels={state.hotels} reservations={state.reservations} onSave={store.updateDocument} />
+            ) : (
+              <>
+                <div className="moreQuickGrid">
+                  <button className="quickPanel" type="button" onClick={() => setMoreView("documents")}><span>📄 Documentos</span><strong>{docSummary.ready} listos · {docSummary.pending} pendientes</strong><small>eTA, Visit Japan Web, seguro y pasaportes</small></button>
+                  <button className="quickPanel" type="button" onClick={() => setMoreView("readiness")}><span>✅ Antes de viajar</span><strong>Checklist automático</strong><small>Documentos, hoteles, actividades y transporte</small></button>
                 </div>
-              </div>
-              <div className="backupGrid">
-                <StatCard label="Días" value={String(state.days.length)} />
-                <StatCard label="Actividades" value={String(state.activities.length)} />
-                <StatCard label="Fuentes" value={String(state.sources.length)} />
-                <StatCard label="Biblioteca" value={String(state.library.length)} />
-              </div>
-              <details className="migrationNotes">
-                <summary>Notas de migración</summary>
-                {state.migrationReport.knownIssues.map((issue) => (
-                  <p key={issue}>{issue}</p>
-                ))}
-              </details>
-            </section>
+                <div className="moreGrid">
+                  <section className="panelCard">
+                    <div className="sectionTitle">
+                      <h3>Biblioteca / Shoe Lab</h3>
+                      <select value={libraryFilter} onChange={(event) => setLibraryFilter(event.target.value)}>
+                        <option value="all">Todo</option><option value="calzado">Calzado / moda</option><option value="extra">Experiencias extra</option><option value="descartado">Descartado</option>
+                      </select>
+                    </div>
+                    <div className="libraryGrid">
+                      {state.library.filter((item) => libraryFilter === "all" || item.category === libraryFilter || item.status === libraryFilter).map((item: LibraryItem) => (
+                        <article className={`libraryCard ${item.status}`} key={item.id}>
+                          <span>{item.category}</span><h4>{item.title}</h4><p>{item.place}</p><small>{item.note}</small>
+                          <div className="actionRow">
+                            <select defaultValue={item.suggestedDate || days[0]?.id} id={`day-${item.id}`}>{days.map((day) => <option value={day.id} key={day.id}>{day.label} · {day.city}</option>)}</select>
+                            <button className="chipButton" type="button" onClick={() => { const select = document.getElementById(`day-${item.id}`) as HTMLSelectElement | null; store.addLibraryToItinerary(item.id, select?.value ?? days[0].id); }}>Añadir</button>
+                            <button className="chipButton" type="button" onClick={() => store.updateLibraryItem({ ...item, status: "descartado" })}>Descartar</button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                  <section className="panelCard">
+                    <div className="sectionTitle"><h3>Inspiración</h3></div>
+                    <div className="sourceGrid">
+                      {state.sources.map((source) => (
+                        <article className="sourceCard" key={source.id}><span>{source.type}</span><h4>{source.handle || "Fuente"}</h4><p>{source.note}</p><div className="usedList">{source.associatedActivityIds.map((activityId) => { const activity = state.activities.find((item) => item.id === activityId); return activity ? <small key={activityId}>{activity.title}</small> : null; })}</div><a className="chipButton" href={source.url} target="_blank" rel="noreferrer">Abrir publicación</a></article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+                <section className="panelCard">
+                  <div className="sectionTitle"><h3>Respaldo</h3><div className="actionRow">
+                    <button className="primaryAction" type="button" onClick={store.exportBackup}><Download size={16}/>Exportar respaldo</button>
+                    <label className="primaryAction fileButton"><Upload size={16}/>Importar respaldo<input type="file" accept=".json,application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) importBackup(file); event.currentTarget.value = ""; }}/></label>
+                    <button className="ghost danger" type="button" onClick={() => { if (window.confirm("¿Restaurar el JSON base migrado y borrar cambios locales?")) store.resetToInitial(); }}>Restaurar base</button>
+                  </div></div>
+                  <div className="backupGrid"><StatCard label="Días" value={String(state.days.length)}/><StatCard label="Actividades" value={String(state.activities.length)}/><StatCard label="Zonas" value={String(state.zones.length)}/><StatCard label="Opciones por zona" value={String(state.zonePlaces.length)}/></div>
+                  <details className="migrationNotes"><summary>Notas de migración V7</summary>{state.migrationReport.knownIssues.map((issue) => <p key={issue}>{issue}</p>)}</details>
+                </section>
+              </>
+            )}
           </section>
         ) : null}
       </main>
@@ -888,6 +844,7 @@ function App() {
         activity={editingActivity}
         days={days}
         sources={state.sources}
+        zones={state.zones}
         onClose={() => setEditingActivity(null)}
         onSave={saveActivity}
         onDelete={(activityId) => {

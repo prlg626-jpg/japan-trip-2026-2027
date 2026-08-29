@@ -1,4 +1,5 @@
 import type { Activity, LibraryItem, TripDay, TripState } from "../types";
+import { normalizeActivityV7 } from "./migration";
 
 export function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -85,13 +86,12 @@ export function normalizeOrders(state: TripState): TripState {
 }
 
 export function libraryToActivity(item: LibraryItem, dayId: string, order: number): Activity {
-  return {
+  return normalizeActivityV7({
     id: `${item.id}-${Date.now()}`,
     dayId,
     order,
     start: item.start ?? "",
     end: item.end ?? "",
-    durationMinutes: null,
     title: item.title,
     place: item.place,
     kind: item.kind,
@@ -107,10 +107,10 @@ export function libraryToActivity(item: LibraryItem, dayId: string, order: numbe
     flexible: true,
     fixed: false,
     sourceIds: item.sourceIds,
-    costItemId: null,
-    estimatedCostCOP: 0,
-    actualPaidCOP: 0,
-  };
+    category: item.category || "extra",
+    displayMode: "flex-list",
+    priceScope: "unknown",
+  });
 }
 
 export function statusLabel(status: Activity["status"]) {
