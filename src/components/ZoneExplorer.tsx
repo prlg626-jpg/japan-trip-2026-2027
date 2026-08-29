@@ -1,36 +1,19 @@
 import { useMemo, useState } from "react";
-import { Check, ExternalLink, MapPin, RotateCcw, Sparkles } from "lucide-react";
-import type { Zone, ZonePlace } from "../types";
+import { ExternalLink, MapPin, RotateCcw, Sparkles } from "lucide-react";
+import type { MoneyOriginal, Zone, ZonePlace } from "../types";
+import "../v8.css";
 
-const categoryNames: Record<string,string> = { explore:"Explorar", tourism:"Turismo", experience:"Experiencia", museum:"Museo", anime:"Anime / gaming", gaming:"Gaming", shopping:"Compras", nature:"Naturaleza", market:"Mercado", food:"Restaurante", cafe:"Café" };
+const categoryNames:Record<string,string>={explore:"Paseo / barrio",tourism:"Lugar turístico",experience:"Experiencia",museum:"Museo",anime:"Anime / gaming",gaming:"Gaming",shopping:"Compras",nature:"Naturaleza",market:"Mercado",food:"Restaurante",cafe:"Café"};
+const JPY_COP=19.3465, USD_COP=3071.41;
+function cop(n:number){return new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Math.round(n));}
+function priceCOP(original:MoneyOriginal|null,scope:string,label:string){if(!original||!original.unit){if(/gratis/i.test(label))return"Gratis";return label||"Precio por verificar";}const unit=original.currency==="JPY"?original.unit*JPY_COP:original.currency==="USD"?original.unit*USD_COP:original.unit;const qty=scope==="per_person"?2:(original.quantity||1);const suffix=scope==="per_person"?"aprox. para los dos":scope==="per_item"?"por producto":scope==="for_two"?"para los dos":"aprox.";return`${cop(unit*qty)} · ${suffix}`;}
 
-export function ZoneExplorer({ zones, places, onToggle, onRecommended, onClear, ordinalOffset = 0 }: { zones: Zone[]; places: ZonePlace[]; onToggle: (place: ZonePlace) => void; onRecommended: () => void; onClear: () => void; ordinalOffset?: number }) {
-  const [filter,setFilter]=useState("all");
-  const categories=useMemo(()=>Array.from(new Set(places.map(p=>p.category))).sort(),[places]);
-  const visible=places.filter(p=>filter==="all" || p.category===filter || (filter==="essential" && p.priorityRank==="essential") || (filter==="selected" && p.selected));
-  const selected=places.filter(p=>p.selected).sort((a,b)=>a.order-b.order);
-  const ordinal=new Map(selected.map((p,i)=>[p.id,i+1+ordinalOffset]));
-  if (!zones.length && !places.length) return null;
-  return (
-    <section className="zoneExplorer">
-      <header className="zoneHeader">
-        <div><span>Explorar zona · tú decides</span><h3>{zones.map(z=>z.name).join(" + ")}</h3><p>{zones.map(z=>z.description).join(" ")}</p></div>
-        <div className="zoneActions"><button className="chipButton" type="button" onClick={onRecommended}><Sparkles size={15}/>Seleccionar recomendados</button><button className="chipButton" type="button" onClick={onClear}><RotateCcw size={15}/>Limpiar</button></div>
-      </header>
-      <div className="filterStrip"><button className={filter==="all"?"active":""} onClick={()=>setFilter("all")}>Todo</button><button className={filter==="selected"?"active":""} onClick={()=>setFilter("selected")}>Seleccionados ({selected.length})</button><button className={filter==="essential"?"active":""} onClick={()=>setFilter("essential")}>Imprescindible</button>{categories.map(c=><button key={c} className={filter===c?"active":""} onClick={()=>setFilter(c)}>{categoryNames[c]??c}</button>)}</div>
-      <div className="zonePlaceList">
-        {visible.map(place=>(
-          <article key={place.id} className={`zonePlaceCard category-${place.category} ${place.selected?"selected":""}`}>
-            <button className="selectPlace" type="button" onClick={()=>onToggle({...place,selected:!place.selected})} aria-label={place.selected?"Quitar del día":"Añadir al día"}>{place.selected ? <span className="ordinal">{ordinal.get(place.id)}</span> : <span className="emptyCheck"><Check size={15}/></span>}</button>
-            <div className="zonePlaceMain">
-              <div className="zonePlaceTitle"><div><span>{categoryNames[place.category]??place.category} · {place.priorityRank}</span><h4>{place.title}</h4></div>{place.reservationRequired?<span className="reservationBadge">Reserva</span>:null}</div>
-              <p>{place.description}</p>
-              <div className="placeMeta"><span>{place.estimatedDurationMinutes ? `≈ ${place.estimatedDurationMinutes} min` : "Duración flexible"}</span><span>{place.priceLabel || "Precio por verificar"}</span>{place.holidayNote?<span className="warningText">⚠ {place.holidayNote}</span>:null}</div>
-              <div className="actionRow">{place.officialUrl?<a className="chipButton" href={place.officialUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/>Oficial</a>:null}<a className="chipButton" href={place.googleMapsUrl} target="_blank" rel="noreferrer"><MapPin size={14}/>Maps</a><button className="chipButton" type="button" onClick={()=>onToggle({...place,selected:!place.selected})}>{place.selected?"Quitar":"Añadir a mi día"}</button></div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
+export function ZoneExplorer({zones,places,onToggle,onRecommended,onClear,ordinalOffset=0}:{zones:Zone[];places:ZonePlace[];onToggle:(p:ZonePlace)=>void;onRecommended:()=>void;onClear:()=>void;ordinalOffset?:number}){
+ const [filter,setFilter]=useState("all");const [zoneId,setZoneId]=useState(zones[0]?.id??"all");
+ const activeZone=zones.find(z=>z.id===zoneId)??zones[0];const zonePlaces=places.filter(p=>!activeZone||p.zoneId===activeZone.id);
+ const categories=useMemo(()=>Array.from(new Set(zonePlaces.map(p=>p.category))).sort(),[zonePlaces]);
+ const visible=zonePlaces.filter(p=>filter==="all"||p.category===filter||(filter==="selected"&&p.selected)||(filter==="essential"&&p.priorityRank==="essential"));
+ const selected=places.filter(p=>p.selected).sort((a,b)=>a.order-b.order);const ordinal=new Map(selected.map((p,i)=>[p.id,i+1+ordinalOffset]));
+ if(!zones.length&&!places.length)return null;
+ return <section className="zoneExplorer"><header className="zoneHeader"><span>Elige lo que sí quieres hacer</span><h3>{activeZone?.name??"Opciones de la zona"}</h3><p>{activeZone?.description}</p>{zones.length>1?<div className="zoneSelector">{zones.map(z=><button type="button" key={z.id} className={zoneId===z.id?"active":""} onClick={()=>setZoneId(z.id)}>{z.name}</button>)}</div>:null}<div className="zoneActions"><button className="chipButton" type="button" onClick={onRecommended}><Sparkles size={15}/>Marcar recomendados</button><button className="chipButton" type="button" onClick={onClear}><RotateCcw size={15}/>Quitar selección</button></div></header><div className="filterStrip"><button className={filter==="all"?"active":""} onClick={()=>setFilter("all")}>Todo ({zonePlaces.length})</button><button className={filter==="selected"?"active":""} onClick={()=>setFilter("selected")}>Mi día ({selected.length})</button><button className={filter==="essential"?"active":""} onClick={()=>setFilter("essential")}>Imperdibles</button>{categories.map(c=><button key={c} className={filter===c?"active":""} onClick={()=>setFilter(c)}>{categoryNames[c]??c}</button>)}</div><div className="zonePlaceList">{visible.map(place=><article key={place.id} className={`zonePlaceCard category-${place.category} ${place.selected?"selected":""}`}><div className="zonePlaceTitle"><div><span className="placeType">{categoryNames[place.category]??place.category}</span><h4>{place.selected&&ordinal.get(place.id)?`${ordinal.get(place.id)}. `:""}{place.title}</h4></div>{place.reservationRequired?<span className="reservationBadge">Reserva</span>:null}</div><p className="placeDescription"><strong>Qué es:</strong> {place.description}</p><div className="placeMeta">{place.nearestStation?<span>🚉 {place.nearestStation}</span>:null}<span>⏱ {place.estimatedDurationMinutes?`≈ ${place.estimatedDurationMinutes} min`:"a tu ritmo"}</span><span className="placePrice">💰 {priceCOP(place.priceOriginal,place.priceScope,place.priceLabel)}</span>{place.ratingContext?<span>⭐ {place.ratingContext}</span>:null}</div>{place.holidayNote?<p className="warningText">⚠ {place.holidayNote}</p>:null}<button className="selectPlaceBig" type="button" onClick={()=>onToggle({...place,selected:!place.selected})}>{place.selected?"✓ Está en mi día · quitar":"+ Añadir a mi día"}</button><div className="actionRow">{place.officialUrl?<a className="chipButton" href={place.officialUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/>Ver sitio</a>:null}<a className="chipButton" href={place.googleMapsUrl} target="_blank" rel="noreferrer"><MapPin size={14}/>Cómo llegar</a></div></article>)}</div></section>;
 }
