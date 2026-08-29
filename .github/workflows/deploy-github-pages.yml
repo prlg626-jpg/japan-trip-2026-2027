@@ -32,6 +32,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile --dangerously-allow-all-builds
 
+      - name: Apply V8 trip planner
+        run: bash scripts/apply-v8-runtime.sh
+
       - name: Validate migrated data
         run: pnpm test:data
 
