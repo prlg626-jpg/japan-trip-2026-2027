@@ -25,8 +25,13 @@ export function estimateFromOriginal(cost: CostItem, state: TripState): number {
 }
 
 export function activityEstimate(activity: Activity, state: TripState): number {
-  if (activity.estimatedCostCOP != null) return Number(activity.estimatedCostCOP || 0);
-  const cost = activity.costItemId ? state.costs.find((item) => item.id === activity.costItemId) : null;
+  if (activity.estimatedCostCOP != null && Number(activity.estimatedCostCOP) > 0) return Number(activity.estimatedCostCOP);
+  const legacyCostAliases: Record<string, string> = {
+    "v7-28-chopsticks": "d26-chopsticks",
+    "v7-28-matcha": "d26-matcha",
+  };
+  const costId = activity.costItemId || legacyCostAliases[activity.id];
+  const cost = costId ? state.costs.find((item) => item.id === costId) : null;
   return cost ? estimateFromOriginal(cost, state) : 0;
 }
 
