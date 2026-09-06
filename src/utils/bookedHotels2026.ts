@@ -33,7 +33,7 @@ function upsertHotelPurchase(state: TripState, purchase: Purchase) {
   else state.purchases.push(purchase);
 }
 
-/** Canonical hotel booking patch for the confirmed Osaka and Tokyo stays. */
+/** Canonical hotel booking patch for the paid Osaka and Tokyo stays. */
 export function applyBookedHotels2026(input: TripState): TripState {
   const state = structuredClone(input);
   const usdCop = state.settings.fx.USD;
@@ -44,11 +44,11 @@ export function applyBookedHotels2026(input: TripState): TripState {
     osaka.name = OSAKA_HOTEL;
     osaka.price = { amount: 940.52, currency: "USD", amountCOP: Math.round(940.52 * usdCop) };
     osaka.nights = 7;
-    osaka.status = "Reservado - pago pendiente";
+    osaka.status = "Pagado";
     osaka.reservation = "Confirmado";
-    osaka.notes = "Reserva confirmada para 2 adultos. Queen Room, Non-Smoking, 21 m², 1 King bed. Sin desayuno. Total mostrado: US$940.52 incluidos impuestos y cargos. Pago diferido según la reserva.";
+    osaka.notes = "Reserva confirmada y pagada para 2 adultos. Queen Room, Non-Smoking, 21 m², 1 King bed. Sin desayuno. Total mostrado: US$940.52 incluidos impuestos y cargos.";
     osaka.address = "1-12-8 Sonezakishinchi, Kita-ku, Osaka 530-0002, Japan";
-    osaka.paid = false;
+    osaka.paid = true;
     osaka.quotedNights = 7;
     osaka.plannedNights = 7;
     osaka.quoteCoverage = "full";
@@ -67,13 +67,13 @@ export function applyBookedHotels2026(input: TripState): TripState {
     tokyo.name = TOKYO_HOTEL;
     tokyo.price = { amount: 1057, currency: "USD", amountCOP: Math.round(1057 * usdCop) };
     tokyo.nights = 7;
-    tokyo.status = "Reservado - pago pendiente";
+    tokyo.status = "Pagado";
     tokyo.reservation = "Confirmado";
-    tokyo.notes = "Reserva confirmada para 2 adultos. Total informado: US$1,057. Se registra como reservado hasta confirmar el cargo efectivo.";
+    tokyo.notes = "Reserva confirmada y pagada para 2 adultos. Total informado: US$1,057.";
     tokyo.address = "4-23-1 Shimbashi, Minato-ku, Tokyo 105-0004, Japan";
     tokyo.lat = 35.66354;
     tokyo.lon = 139.75705;
-    tokyo.paid = false;
+    tokyo.paid = true;
     tokyo.quotedNights = 7;
     tokyo.plannedNights = 7;
     tokyo.quoteCoverage = "full";
@@ -98,8 +98,8 @@ export function applyBookedHotels2026(input: TripState): TripState {
     amountCOP: Math.round(940.52 * usdCop),
     date: "25 dic – 1 ene",
     confirmationNumber: "",
-    status: "Reservado",
-    notes: "2 adultos · Queen Room Non-Smoking · 21 m² · 1 King bed · sin desayuno · total US$940.52 · pago diferido · cancelación gratuita hasta 22 dic 2026 21:59 JST.",
+    status: "Pagado",
+    notes: "2 adultos · Queen Room Non-Smoking · 21 m² · 1 King bed · sin desayuno · total US$940.52 · pagado.",
     link: osaka?.klookUrl || osaka?.link || "",
     receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
@@ -116,8 +116,8 @@ export function applyBookedHotels2026(input: TripState): TripState {
     amountCOP: Math.round(1057 * usdCop),
     date: "2 ene – 9 ene",
     confirmationNumber: "",
-    status: "Reservado",
-    notes: "2 adultos · reserva confirmada · total informado US$1,057. Se mantiene como reservado no pagado hasta confirmar el cargo.",
+    status: "Pagado",
+    notes: "2 adultos · reserva confirmada · total informado US$1,057 · pagado.",
     link: tokyo?.klookUrl || tokyo?.link || "",
     receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
@@ -193,8 +193,8 @@ export function applyBookedHotels2026(input: TripState): TripState {
     { name: "Tokyo DisneySea", km: "≈16 km", time: "40–50 min" },
   ];
 
-  if (!state.decisions.includes(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`)) state.decisions.push(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`);
-  if (!state.decisions.includes(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`)) state.decisions.push(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`);
+  if (!state.decisions.includes(`${OSAKA_HOTEL} pagado 25 dic 2026–1 ene 2027.`)) state.decisions.push(`${OSAKA_HOTEL} pagado 25 dic 2026–1 ene 2027.`);
+  if (!state.decisions.includes(`${TOKYO_HOTEL} pagado 2–9 ene 2027.`)) state.decisions.push(`${TOKYO_HOTEL} pagado 2–9 ene 2027.`);
 
   return state;
 }
