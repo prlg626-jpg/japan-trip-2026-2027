@@ -1,5 +1,7 @@
 import type { Activity, CostItem, Hotel, Purchase, TripState } from "../types";
 
+const FIXED_TRIP_BUDGET_COP = 36_000_000;
+
 export function formatCOP(value: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -93,6 +95,16 @@ export function syncMoneyPage(state: TripState): TripState {
   copy.purchases = copy.purchases.filter((purchase) => purchase.id !== summaryId);
 
   const activities = selectedActivityBudget(copy);
+
+  // The activity line is not a discretionary ceiling anymore: it mirrors the
+  // actual priced activities that are currently active in the itinerary.
+  copy.budget.categories = copy.budget.categories.map((category) => {
+    const isActivities = category.id.toLowerCase().includes("activ") || category.name.toLowerCase().includes("activ");
+    return isActivities
+      ? { ...category, name: "Actividades seleccionadas (calculado)", limitCOP: Math.round(activities.estimatedTotal) }
+      : category;
+  });
+
   const datedRows = activities.rows
     .sort((a, b) => a.activity.dayId.localeCompare(b.activity.dayId) || a.activity.order - b.activity.order);
   const preview = datedRows.slice(0, 8).map((row) => row.activity.title).join(" · ");
@@ -111,7 +123,7 @@ export function syncMoneyPage(state: TripState): TripState {
     date: "Plan actual",
     confirmationNumber: "",
     status: "Por reservar",
-    notes: `${activities.selectedCount} actividades seleccionadas en total; ${activities.pricedCount} tienen precio cargado. Estimado pendiente de las seleccionadas con precio: ${formatCOP(activities.pendingTotal)}. ${preview}${extra ? ` · +${extra} más` : ""}`,
+    notes: `${activities.selectedCount} actividades activas en los días; ${activities.pricedCount} tienen precio cargado. Falta por reservar/pagar de esas actividades: ${formatCOP(activities.pendingTotal)}. ${preview}${extra ? ` · +${extra} más` : ""}`,
     link: "",
     receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
@@ -120,7 +132,10 @@ export function syncMoneyPage(state: TripState): TripState {
 }
 
 export function calculateBudget(state: TripState) {
-  const totalBudget = state.budget.categories.reduce((sum, category) => sum + Number(category.limitCOP || 0), 0);
+  // User-approved closed ceiling for the whole trip. Category allocations no
+  // longer redefine the trip total when one line is edited or recalculated.
+  const totalBudget = FIXED_TRIP_BUDGET_COP;
+
   const paidPurchases = state.purchases
     .filter((purchase) => purchase.id !== "summary-selected-activities")
     .filter(purchasePaid)
@@ -158,6 +173,8 @@ export function calculateBudget(state: TripState) {
     .filter((hotel) => !hotel.archived && !hotel.paid && !committedHotelCities.has(hotel.city))
     .reduce((sum, hotel) => sum + hotelExpectedCOP(hotel, state), 0);
 
+  // "Pending" means things already present in the live plan but not yet
+  // reserved/paid: active priced activities + unpaid/unreserved hotel(s), e.g. Hakone.
   const pending = pendingActivities + pendingHotels;
   const activities = selectedActivityBudget(state);
 
