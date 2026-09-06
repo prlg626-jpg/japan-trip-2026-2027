@@ -15,6 +15,7 @@ import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
 import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
 import { applyBookedHotels2026 } from "../utils/bookedHotels2026";
+import { applyRyokanAvailability2027 } from "../utils/ryokanAvailability2027";
 import { syncMoneyPage } from "../utils/money";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
@@ -24,7 +25,11 @@ function cleanState(state: TripState): TripState {
 }
 
 function withRuntimeEnrichment(state: TripState): TripState {
-  return cleanState(applyBookedHotels2026(enrichTokyoJan8(rebalanceOsakaYearEnd(state))));
+  return cleanState(
+    applyRyokanAvailability2027(
+      applyBookedHotels2026(enrichTokyoJan8(rebalanceOsakaYearEnd(state))),
+    ),
+  );
 }
 
 function loadInitialState(): TripState {
@@ -258,13 +263,10 @@ export function useTripStore() {
     [mutate],
   );
 
-  const importBackup = useCallback(
-    (backup: TripState) => {
-      replaceState(backup);
-      setDirtySince(new Date());
-    },
-    [replaceState],
-  );
+  const importBackup = useCallback((backup: TripState) => {
+    replaceState(backup);
+    setDirtySince(new Date());
+  }, [replaceState]);
 
   const exportBackup = useCallback(() => {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
