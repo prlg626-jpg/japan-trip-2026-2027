@@ -25,6 +25,8 @@ export function MapView({ activities, hotels = [], day = null, zonePlaces = [], 
     if (!ref.current) return;
     if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     const activeActivities = activities.filter((activity) => activity.included && activity.lat != null && activity.lon != null);
+    const numberedActivities = activeActivities.filter((activity) => activity.displayMode !== "flex-list");
+    const flexibleActivities = activeActivities.filter((activity) => activity.displayMode === "flex-list");
     const selectedPlaces = zonePlaces.filter((p) => p.selected && p.lat != null && p.lon != null).sort((a,b)=>a.order-b.order);
     const candidatePlaces = zonePlaces.filter((p) => !p.selected && p.lat != null && p.lon != null);
     const points = [
@@ -42,12 +44,16 @@ export function MapView({ activities, hotels = [], day = null, zonePlaces = [], 
       L.marker([hotel.lat, hotel.lon], { icon: markerHtml("H", "hotel") }).addTo(map).bindPopup(`<strong>${hotel.name}</strong><br>${hotel.city}<br>${hotel.address ?? ""}`);
     });
 
-    activeActivities.forEach((activity, index) => {
+    numberedActivities.forEach((activity, index) => {
       const point: [number, number] = [activity.lat!, activity.lon!];
       L.marker(point, { icon: markerHtml(String(index + 1), `category-${activity.category}`) }).addTo(map).bindPopup(`<strong>${index+1}. ${activity.title}</strong><br>${activity.place}<br>${activity.description || ""}`);
     });
+    flexibleActivities.forEach((activity) => {
+      const point: [number, number] = [activity.lat!, activity.lon!];
+      L.marker(point, { icon: markerHtml(categoryIcon(activity.category), `category-${activity.category} flexible`) }).addTo(map).bindPopup(`<strong>${activity.title}</strong><br>${activity.place}<br>${activity.description || ""}<br><em>Actividad flexible del día</em>`);
+    });
     selectedPlaces.forEach((place,index)=>{
-      const number=activeActivities.length+index+1;
+      const number=numberedActivities.length+index+1;
       L.marker([place.lat!,place.lon!],{icon:markerHtml(String(number),`category-${place.category}`)}).addTo(map).bindPopup(`<strong>${number}. ${place.title}</strong><br>${place.description}`);
     });
     candidatePlaces.forEach((place)=>{
