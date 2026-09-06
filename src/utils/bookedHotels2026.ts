@@ -33,10 +33,7 @@ function upsertHotelPurchase(state: TripState, purchase: Purchase) {
   else state.purchases.push(purchase);
 }
 
-/**
- * Canonical hotel booking patch for the confirmed Osaka and Tokyo stays.
- * Idempotent so it is safe for initial JSON, localStorage and Firebase state.
- */
+/** Canonical hotel booking patch for the confirmed Osaka and Tokyo stays. */
 export function applyBookedHotels2026(input: TripState): TripState {
   const state = structuredClone(input);
   const usdCop = state.settings.fx.USD;
@@ -47,11 +44,11 @@ export function applyBookedHotels2026(input: TripState): TripState {
     osaka.name = OSAKA_HOTEL;
     osaka.price = { amount: 940.52, currency: "USD", amountCOP: Math.round(940.52 * usdCop) };
     osaka.nights = 7;
-    osaka.status = "Pagado";
+    osaka.status = "Reservado - pago pendiente";
     osaka.reservation = "Confirmado";
-    osaka.notes = "Reserva confirmada para 2 adultos. Queen Room, Non-Smoking, 21 m², 1 King bed. Sin desayuno. Total mostrado: US$940.52 incluidos impuestos y cargos.";
+    osaka.notes = "Reserva confirmada para 2 adultos. Queen Room, Non-Smoking, 21 m², 1 King bed. Sin desayuno. Total mostrado: US$940.52 incluidos impuestos y cargos. Pago diferido según la reserva.";
     osaka.address = "1-12-8 Sonezakishinchi, Kita-ku, Osaka 530-0002, Japan";
-    osaka.paid = true;
+    osaka.paid = false;
     osaka.quotedNights = 7;
     osaka.plannedNights = 7;
     osaka.quoteCoverage = "full";
@@ -70,13 +67,13 @@ export function applyBookedHotels2026(input: TripState): TripState {
     tokyo.name = TOKYO_HOTEL;
     tokyo.price = { amount: 1057, currency: "USD", amountCOP: Math.round(1057 * usdCop) };
     tokyo.nights = 7;
-    tokyo.status = "Pagado";
+    tokyo.status = "Reservado - pago pendiente";
     tokyo.reservation = "Confirmado";
-    tokyo.notes = "Reserva confirmada para 2 adultos. Total informado: US$1,057.";
+    tokyo.notes = "Reserva confirmada para 2 adultos. Total informado: US$1,057. Se registra como reservado hasta confirmar el cargo efectivo.";
     tokyo.address = "4-23-1 Shimbashi, Minato-ku, Tokyo 105-0004, Japan";
     tokyo.lat = 35.66354;
     tokyo.lon = 139.75705;
-    tokyo.paid = true;
+    tokyo.paid = false;
     tokyo.quotedNights = 7;
     tokyo.plannedNights = 7;
     tokyo.quoteCoverage = "full";
@@ -92,7 +89,7 @@ export function applyBookedHotels2026(input: TripState): TripState {
   upsertHotelPurchase(state, {
     id: "purchase-hotel-osaka-monterey",
     name: `${OSAKA_HOTEL} · 7 noches`,
-    category: "Hotel",
+    category: "Hoteles",
     activityId: null,
     city: "Osaka",
     provider: "Klook",
@@ -101,8 +98,8 @@ export function applyBookedHotels2026(input: TripState): TripState {
     amountCOP: Math.round(940.52 * usdCop),
     date: "25 dic – 1 ene",
     confirmationNumber: "",
-    status: "Pagado",
-    notes: "2 adultos · Queen Room Non-Smoking · 21 m² · 1 King bed · sin desayuno · cancelación gratuita hasta 22 dic 2026 21:59 JST.",
+    status: "Reservado",
+    notes: "2 adultos · Queen Room Non-Smoking · 21 m² · 1 King bed · sin desayuno · total US$940.52 · pago diferido · cancelación gratuita hasta 22 dic 2026 21:59 JST.",
     link: osaka?.klookUrl || osaka?.link || "",
     receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
@@ -110,7 +107,7 @@ export function applyBookedHotels2026(input: TripState): TripState {
   upsertHotelPurchase(state, {
     id: "purchase-hotel-tokyo-tokyustay",
     name: `${TOKYO_HOTEL} · 7 noches`,
-    category: "Hotel",
+    category: "Hoteles",
     activityId: null,
     city: "Tokyo",
     provider: "Reserva hotel",
@@ -119,13 +116,20 @@ export function applyBookedHotels2026(input: TripState): TripState {
     amountCOP: Math.round(1057 * usdCop),
     date: "2 ene – 9 ene",
     confirmationNumber: "",
-    status: "Pagado",
-    notes: "2 adultos · reserva confirmada · total informado US$1,057.",
+    status: "Reservado",
+    notes: "2 adultos · reserva confirmada · total informado US$1,057. Se mantiene como reservado no pagado hasta confirmar el cargo.",
     link: tokyo?.klookUrl || tokyo?.link || "",
     receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
 
-  // Replace stale Imperial Hotel references inside Osaka activities.
+  const hotelBudget = state.budget.categories.find((category) => category.id === "hoteles");
+  if (hotelBudget) hotelBudget.name = "Hoteles";
+  state.budget.hotelBudgets = state.budget.hotelBudgets.map((entry) => {
+    if (entry.city === "Osaka") return { ...entry, nights: 7, budget: Math.round(940.52 * usdCop) };
+    if (entry.city === "Tokyo") return { ...entry, nights: 7, budget: Math.round(1057 * usdCop) };
+    return entry;
+  });
+
   state.activities.forEach((activity) => {
     if (activity.dayId < "2026-12-25" || activity.dayId > "2027-01-01") return;
     activity.place = activity.place.replace(/Imperial Hotel Osaka/g, OSAKA_HOTEL);
@@ -137,76 +141,28 @@ export function applyBookedHotels2026(input: TripState): TripState {
   });
 
   const d25 = state.days.find((day) => day.id === "2026-12-25");
-  setDayRoute(
-    d25,
-    "Shin-Osaka -> JR Osaka -> Hotel Monterey Le Frere Osaka. Calcula aprox. 20–25 min totales; desde JR Osaka Station son unos 10 min a pie y Kitashinchi queda a 1 min del hotel.",
-    "Shin-Osaka Station",
-    OSAKA_HOTEL,
-    "Llegada mucho más simple que con el Imperial: JR hasta Osaka Station y último tramo a pie; no dependemos de shuttle.",
-  );
+  setDayRoute(d25, "Shin-Osaka -> JR Osaka -> Hotel Monterey Le Frere Osaka. Calcula aprox. 20–25 min totales; desde JR Osaka Station son unos 10 min a pie y Kitashinchi queda a 1 min del hotel.", "Shin-Osaka Station", OSAKA_HOTEL, "Llegada mucho más simple que con el Imperial: JR hasta Osaka Station y último tramo a pie; no dependemos de shuttle.");
 
   const d26 = state.days.find((day) => day.id === "2026-12-26");
-  setDayRoute(
-    d26,
-    "Hotel Monterey Le Frere Osaka -> Osaka Castle / Okawa. Calcula aprox. 20–30 min según el punto elegido; sigue siendo un día sin reservas y de baja presión.",
-    OSAKA_HOTEL,
-    "Osaka Castle Park",
-    "Ya no estamos al lado del río como en el Imperial. Mantener 1–2 opciones y decidir según energía.",
-  );
+  setDayRoute(d26, "Hotel Monterey Le Frere Osaka -> Osaka Castle / Okawa. Calcula aprox. 20–30 min según el punto elegido; sigue siendo un día sin reservas y de baja presión.", OSAKA_HOTEL, "Osaka Castle Park", "Ya no estamos al lado del río como en el Imperial. Mantener 1–2 opciones y decidir según energía.");
 
   const d27 = state.days.find((day) => day.id === "2026-12-27");
-  setDayRoute(
-    d27,
-    "Hotel Monterey Le Frere Osaka -> Osaka Station -> Universal City. Calcula aprox. 30–35 min; Osaka Station funciona como nodo JR para llegar a USJ.",
-    OSAKA_HOTEL,
-    "Universal Studios Japan",
-    "Salir con margen para la apertura del parque. La nueva base en Umeda mejora este traslado frente al Imperial.",
-  );
+  setDayRoute(d27, "Hotel Monterey Le Frere Osaka -> Osaka Station -> Universal City. Calcula aprox. 30–35 min; Osaka Station funciona como nodo JR para llegar a USJ.", OSAKA_HOTEL, "Universal Studios Japan", "Salir con margen para la apertura del parque. La nueva base en Umeda mejora este traslado frente al Imperial.");
 
   const d28 = state.days.find((day) => day.id === "2026-12-28");
-  setDayRoute(
-    d28,
-    "Hotel Monterey Le Frere Osaka -> Umeda/Nishi-Umeda -> Shinsaibashi. Aproximadamente 20–25 min hasta el núcleo de Shinsaibashi; después Dotonbori y Namba se hacen a pie.",
-    OSAKA_HOTEL,
-    "Pokemon Cafe Osaka Daimaru Shinsaibashi",
-    "Bajar una sola vez a Minami y mantener el resto del día caminable: Shinsaibashi -> Dotonbori -> Namba.",
-  );
+  setDayRoute(d28, "Hotel Monterey Le Frere Osaka -> Umeda/Nishi-Umeda -> Shinsaibashi. Aproximadamente 20–25 min hasta el núcleo de Shinsaibashi; después Dotonbori y Namba se hacen a pie.", OSAKA_HOTEL, "Pokemon Cafe Osaka Daimaru Shinsaibashi", "Bajar una sola vez a Minami y mantener el resto del día caminable: Shinsaibashi -> Dotonbori -> Namba.");
 
   const d29 = state.days.find((day) => day.id === "2026-12-29");
-  setDayRoute(
-    d29,
-    "Hotel Monterey Le Frere Osaka -> Osaka Station / Umeda. La zona principal del día queda a unos 10 min a pie; Kitashinchi está prácticamente al lado del hotel.",
-    OSAKA_HOTEL,
-    "LUCUA Osaka",
-    "Día especialmente cómodo desde el nuevo hotel: Umeda y Osaka Station quedan en el entorno inmediato.",
-  );
+  setDayRoute(d29, "Hotel Monterey Le Frere Osaka -> Osaka Station / Umeda. La zona principal del día queda a unos 10 min a pie; Kitashinchi está prácticamente al lado del hotel.", OSAKA_HOTEL, "LUCUA Osaka", "Día especialmente cómodo desde el nuevo hotel: Umeda y Osaka Station quedan en el entorno inmediato.");
 
   const d30 = state.days.find((day) => day.id === "2026-12-30");
-  setDayRoute(
-    d30,
-    "Hotel Monterey Le Frere Osaka -> Osaka Aquarium Kaiyukan / Tempozan. Calcula aprox. 35–45 min en metro; mantener toda la jornada concentrada en Osaka Bay.",
-    OSAKA_HOTEL,
-    "Osaka Aquarium Kaiyukan",
-    "Un solo desplazamiento hacia la bahía y regreso al final; no combinar con otra zona lejana.",
-  );
+  setDayRoute(d30, "Hotel Monterey Le Frere Osaka -> Osaka Aquarium Kaiyukan / Tempozan. Calcula aprox. 35–45 min en metro; mantener toda la jornada concentrada en Osaka Bay.", OSAKA_HOTEL, "Osaka Aquarium Kaiyukan", "Un solo desplazamiento hacia la bahía y regreso al final; no combinar con otra zona lejana.");
 
   const d31 = state.days.find((day) => day.id === "2026-12-31");
-  setDayRoute(
-    d31,
-    "Hotel Monterey Le Frere Osaka -> Nakanoshima / Kitahama -> Midosuji -> Shinsaibashi. Recorrido lineal norte-sur; el primer tramo es cercano y evita cruces innecesarios.",
-    OSAKA_HOTEL,
-    "Nakanoshima Park",
-    "La nueva base encaja especialmente bien con el 31: empezar cerca de Nakanoshima y avanzar hacia el sur sin regresar sobre los pasos.",
-  );
+  setDayRoute(d31, "Hotel Monterey Le Frere Osaka -> Nakanoshima / Kitahama -> Midosuji -> Shinsaibashi. Recorrido lineal norte-sur; el primer tramo es cercano y evita cruces innecesarios.", OSAKA_HOTEL, "Nakanoshima Park", "La nueva base encaja especialmente bien con el 31: empezar cerca de Nakanoshima y avanzar hacia el sur sin regresar sobre los pasos.");
 
   const d1 = state.days.find((day) => day.id === "2027-01-01");
-  setDayRoute(
-    d1,
-    "Hotel Monterey Le Frere Osaka -> Osaka Station / Shin-Osaka -> Odawara -> Hakone. Reserva aprox. 20–25 min para alcanzar Shin-Osaka antes del Shinkansen.",
-    OSAKA_HOTEL,
-    "Shin-Osaka Station",
-    "Salida de Osaka más sencilla desde Umeda. El tramo final en Hakone se ajustará cuando confirmemos el ryokan.",
-  );
+  setDayRoute(d1, "Hotel Monterey Le Frere Osaka -> Osaka Station / Shin-Osaka -> Odawara -> Hakone. Reserva aprox. 20–25 min para alcanzar Shin-Osaka antes del Shinkansen.", OSAKA_HOTEL, "Shin-Osaka Station", "Salida de Osaka más sencilla desde Umeda. El tramo final en Hakone se ajustará cuando confirmemos el ryokan.");
 
   const d2 = state.days.find((day) => day.id === "2027-01-02");
   if (d2?.dayRoute) {
@@ -237,12 +193,8 @@ export function applyBookedHotels2026(input: TripState): TripState {
     { name: "Tokyo DisneySea", km: "≈16 km", time: "40–50 min" },
   ];
 
-  if (!state.decisions.includes(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`)) {
-    state.decisions.push(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`);
-  }
-  if (!state.decisions.includes(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`)) {
-    state.decisions.push(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`);
-  }
+  if (!state.decisions.includes(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`)) state.decisions.push(`${OSAKA_HOTEL} reservado 25 dic 2026–1 ene 2027.`);
+  if (!state.decisions.includes(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`)) state.decisions.push(`${TOKYO_HOTEL} reservado 2–9 ene 2027.`);
 
   return state;
 }
