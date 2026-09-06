@@ -13,6 +13,7 @@ import type {
 import { libraryToActivity, normalizeOrders } from "../utils/trip";
 import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
 import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
+import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -20,18 +21,18 @@ function cleanState(state: TripState): TripState {
   return normalizeOrders(state);
 }
 
-function withOsakaRebalance(state: TripState): TripState {
-  return cleanState(rebalanceOsakaYearEnd(state));
+function withRuntimeEnrichment(state: TripState): TripState {
+  return cleanState(enrichTokyoJan8(rebalanceOsakaYearEnd(state)));
 }
 
 function loadInitialState(): TripState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return withOsakaRebalance(migrateStoredState(JSON.parse(saved) as TripState));
+    if (saved) return withRuntimeEnrichment(migrateStoredState(JSON.parse(saved) as TripState));
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  return withOsakaRebalance(structuredClone(initialTrip as TripState));
+  return withRuntimeEnrichment(structuredClone(initialTrip as TripState));
 }
 
 function uid(prefix: string) {
@@ -47,7 +48,7 @@ export function useTripStore() {
   }, [state]);
 
   const replaceState = useCallback((next: TripState) => {
-    setState(withOsakaRebalance(next));
+    setState(withRuntimeEnrichment(next));
     setDirtySince(null);
   }, []);
 
@@ -278,7 +279,7 @@ export function useTripStore() {
   }, [state]);
 
   const resetToInitial = useCallback(() => {
-    replaceState(withOsakaRebalance(structuredClone(initialTrip as TripState)));
+    replaceState(cleanState(structuredClone(initialTrip as TripState)));
     setDirtySince(new Date());
   }, [replaceState]);
 
