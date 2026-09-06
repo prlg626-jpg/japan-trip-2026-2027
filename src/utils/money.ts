@@ -87,20 +87,57 @@ export function selectedActivityBudget(state: TripState) {
   };
 }
 
+export function syncMoneyPage(state: TripState): TripState {
+  const copy = structuredClone(state);
+  const summaryId = "summary-selected-activities";
+  copy.purchases = copy.purchases.filter((purchase) => purchase.id !== summaryId);
+
+  const activities = selectedActivityBudget(copy);
+  const datedRows = activities.rows
+    .sort((a, b) => a.activity.dayId.localeCompare(b.activity.dayId) || a.activity.order - b.activity.order);
+  const preview = datedRows.slice(0, 8).map((row) => row.activity.title).join(" · ");
+  const extra = Math.max(0, datedRows.length - 8);
+
+  copy.purchases.push({
+    id: summaryId,
+    name: `Actividades seleccionadas · ${activities.pricedCount} con precio`,
+    category: "Actividades",
+    activityId: null,
+    city: "Japón",
+    provider: "Calculado desde el itinerario activo",
+    originalAmount: activities.estimatedTotal,
+    currency: "COP",
+    amountCOP: activities.estimatedTotal,
+    date: "Plan actual",
+    confirmationNumber: "",
+    status: "Por reservar",
+    notes: `${activities.selectedCount} actividades seleccionadas en total; ${activities.pricedCount} tienen precio cargado. Estimado pendiente de las seleccionadas con precio: ${formatCOP(activities.pendingTotal)}. ${preview}${extra ? ` · +${extra} más` : ""}`,
+    link: "",
+    receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
+  });
+
+  return copy;
+}
+
 export function calculateBudget(state: TripState) {
   const totalBudget = state.budget.categories.reduce((sum, category) => sum + Number(category.limitCOP || 0), 0);
-  const paidPurchases = state.purchases.filter(purchasePaid).reduce((sum, purchase) => sum + Number(purchase.amountCOP || 0), 0);
+  const paidPurchases = state.purchases
+    .filter((purchase) => purchase.id !== "summary-selected-activities")
+    .filter(purchasePaid)
+    .reduce((sum, purchase) => sum + Number(purchase.amountCOP || 0), 0);
   const paidActivities = state.activities
     .filter((activity) => activity.actualPaidCOP > 0 && !state.purchases.some((purchase) => purchase.activityId === activity.id))
     .reduce((sum, activity) => sum + Number(activity.actualPaidCOP || 0), 0);
   const paid = paidPurchases + paidActivities;
 
   const committed = state.purchases
+    .filter((purchase) => purchase.id !== "summary-selected-activities")
     .filter(purchaseCommitted)
     .reduce((sum, purchase) => sum + Number(purchase.amountCOP || 0), 0);
 
   const purchasedActivityIds = new Set(
     state.purchases
+      .filter((purchase) => purchase.id !== "summary-selected-activities")
       .filter((purchase) => purchase.status === "Pagado" || purchase.status === "Reservado")
       .map((purchase) => purchase.activityId)
       .filter(Boolean),
