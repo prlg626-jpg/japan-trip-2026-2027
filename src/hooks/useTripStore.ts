@@ -12,11 +12,12 @@ import type {
 } from "../types";
 import { libraryToActivity, normalizeOrders } from "../utils/trip";
 import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
+import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
 function cleanState(state: TripState): TripState {
-  return normalizeOrders(state);
+  return normalizeOrders(rebalanceOsakaYearEnd(state));
 }
 
 function loadInitialState(): TripState {
