@@ -1,88 +1,32 @@
 import type { TripState } from "../types";
 
-const MAX_COP = 1_600_000;
+const MAX_COP = 2_100_000;
 
 /**
  * Live shortlist for Hakone, 1–2 Jan 2027, 2 adults / 1 room.
- * Prices below include the visible taxes/fees from the live offer checked on 2026-09-06.
- * Inventory is volatile, so each candidate carries a direct live-rate link for re-checking.
+ * Hard requirements: private in-room open/semi-open hot-spring bath, live inventory,
+ * and final visible total (rate + taxes/fees where exposed) <= COP 2.1M.
+ * Checked on 2026-09-06. New Year inventory is volatile, so re-check before paying.
  */
 export function applyRyokanAvailability2027(input: TripState): TripState {
   const state = structuredClone(input);
 
+  // Do not pad this list with public-onsen-only or cheaper mediocre options.
+  // Under the exact New Year dates, this was the only strict live match found
+  // after checking the premium/Ginyu-like set and broader Hakone inventory.
   state.ryokanCandidates = [
     {
-      id: "ryokan-livemax-sengokuhara",
-      name: "LiVEMAX RESORT Hakone Sengokuhara",
+      id: "ryokan-marroad-private-open-air",
+      name: "Hotel Marroad Hakone · Superior Twin con onsen privado",
       rank: 1,
-      why: "DISPONIBLE 1–2 ene. La opción que más se parece a lo que buscábamos: ryokan con onsen y habitación japonesa amplia con baño semiabierto privado. La tarifa live más barata vista queda aprox. en COP 1.585.534 con impuestos/tasas, justo debajo del techo. La habitación con baño semiabierto tiene 52 m².",
-      officialUrl: "https://vio.com/m/s/a37253eb",
-      klookUrl: "https://vio.com/m/s/fca617e4",
-      privateOnsenRoom: "Sí: hay habitación Japanese-Style Junior Suite con semi open-air bath privado. Confirmar que la tarifa elegida corresponda a esa categoría antes de pagar.",
+      why: "MATCH ESTRICTO 1–2 ene. Habitación Superior Twin de 28 m² con baño termal privado al aire libre y vista a la montaña. La oferta live con desayuno queda aprox. en COP 1.988.106 total para dos incluyendo los impuestos visibles. No llega al nivel boutique de Ginyu, pero sí cumple simultáneamente disponibilidad, onsen privado real y techo de COP 2.100.000.",
+      officialUrl: "https://vio.com/m/s/aa5c07b4",
+      klookUrl: "https://vio.com/m/s/a664aeb0",
+      privateOnsenRoom: "Sí. La habitación exacta es Superior Twin Room: private open-air bath, vista a la montaña, 28 m², 2 camas twin. Verificar que el checkout mantenga esta categoría y no Twin Classic.",
       privateBathReservable: true,
       checkIn: "15:00",
       checkOut: "11:00",
-      priceForTwoCOP: 1_585_534,
-      budgetRisk: false,
-      selected: false,
-    },
-    {
-      id: "ryokan-hakone-kogen",
-      name: "Hakone Kogen Hotel",
-      rank: 2,
-      why: "DISPONIBLE 1–2 ene. Muy buena opción si priorizamos experiencia japonesa + onsen + cena/desayuno: el plan half-board visible queda aprox. en COP 1.541.217 con impuestos. Habitación japonesa de 10 tatamis. No tiene onsen privado en la habitación, pero entra cómodo en el presupuesto y deja la noche completa resuelta.",
-      officialUrl: "https://vio.com/m/s/ea9a5efe",
-      klookUrl: "https://vio.com/m/s/690b20a5",
-      privateOnsenRoom: "No en la habitación verificada. Tiene baños termales del hotel.",
-      privateBathReservable: false,
-      checkIn: "15:00",
-      checkOut: "10:00",
-      priceForTwoCOP: 1_541_217,
-      budgetRisk: false,
-      selected: false,
-    },
-    {
-      id: "ryokan-yushintei",
-      name: "Yushintei · Hakone Yumoto",
-      rank: 3,
-      why: "DISPONIBLE 1–2 ene. Ryokan de 4 estrellas en Yumoto, adults-only, con ambiente tradicional y buena logística para llegar/salir. La tarifa visible con desayuno queda aprox. en COP 1.112.466 con impuestos. Es menos espectacular que LiVEMAX, pero bastante más holgado de presupuesto.",
-      officialUrl: "https://vio.com/m/s/25463459",
-      klookUrl: "https://vio.com/m/s/2869ad69",
-      privateOnsenRoom: "No confirmado en la habitación disponible; la oferta visible es Japanese-Style Standard Room con baño compartido.",
-      privateBathReservable: false,
-      checkIn: "15:00",
-      checkOut: "10:00",
-      priceForTwoCOP: 1_112_466,
-      budgetRisk: false,
-      selected: false,
-    },
-    {
-      id: "ryokan-kagetsuen",
-      name: "Kagetsuen · Sengokuhara",
-      rank: 4,
-      why: "DISPONIBLE 1–2 ene. Ryokan de 4 estrellas con hot springs, jardín y habitación japonesa renovada. La tarifa live con desayuno queda aprox. en COP 1.059.966 con impuestos. Muy buen colchón frente al techo, aunque no es la opción más íntima ni premium de la lista.",
-      officialUrl: "https://vio.com/m/s/c82c7539",
-      klookUrl: "https://vio.com/m/s/9e61668b",
-      privateOnsenRoom: "No confirmado en la habitación disponible.",
-      privateBathReservable: false,
-      checkIn: "15:00",
-      checkOut: "11:00",
-      priceForTwoCOP: 1_059_966,
-      budgetRisk: false,
-      selected: false,
-    },
-    {
-      id: "ryokan-chojuyu",
-      name: "Chojuyu Hakone",
-      rank: 5,
-      why: "DISPONIBLE 1–2 ene. Opción económica de ryokan tradicional con hot springs en Sengokuhara. La tarifa visible queda aprox. en COP 463.413 con impuestos/tasas. La dejaría como backup por precio, no como primera elección para una única noche especial en Hakone.",
-      officialUrl: "https://vio.com/m/s/845d7d9b",
-      klookUrl: "https://vio.com/m/s/ee34a771",
-      privateOnsenRoom: "No. Habitación japonesa con futones; onsen del alojamiento.",
-      privateBathReservable: false,
-      checkIn: "15:00",
-      checkOut: "10:00",
-      priceForTwoCOP: 463_413,
+      priceForTwoCOP: 1_988_106,
       budgetRisk: false,
       selected: false,
     },
@@ -90,11 +34,11 @@ export function applyRyokanAvailability2027(input: TripState): TripState {
 
   const hakone = state.hotels.find((hotel) => hotel.id === "hotel-hakone");
   if (hakone) {
-    hakone.name = "Ryokan Hakone · por escoger";
+    hakone.name = "Hakone · onsen privado por escoger";
     hakone.price = { amount: MAX_COP, currency: "COP", amountCOP: MAX_COP };
     hakone.budgetCOP = MAX_COP;
-    hakone.status = "Pendiente de escoger · techo COP 1.600.000";
-    hakone.notes = "Shortlist actualizado con inventario live para 1–2 ene 2027, 2 adultos, 1 habitación. Solo quedan candidatos cuyo total visible con impuestos/tasas no supera COP 1.600.000. Volver a abrir el enlace antes de pagar porque Año Nuevo puede cambiar inventario y tarifa.";
+    hakone.status = "Pendiente de escoger · techo COP 2.100.000";
+    hakone.notes = "Requisito cerrado: 1–2 ene 2027, 2 adultos, onsen privado dentro de la habitación, bonito/buen nivel y máximo COP 2.100.000 total. El shortlist activo solo muestra coincidencias verificadas; no se rellenará con opciones de onsen público.";
   }
 
   state.budget.hotelBudgets = state.budget.hotelBudgets.map((entry) =>
@@ -102,11 +46,11 @@ export function applyRyokanAvailability2027(input: TripState): TripState {
   );
 
   state.notes["ryokan-availability-2027-01-01"] =
-    "Revisión live 6 sep 2026 para 1–2 ene 2027, 2 adultos, 1 habitación, techo COP 1.600.000 total. Hakone Ginyu: sin oferta disponible dentro del filtro y rango típico ~COP 2,10–2,20 M; descartado. Hakone Suimeisou: 0 ofertas live; descartado por falta de disponibilidad. Hakone Kowakien Ten-yu: 0 ofertas live y rango típico ~COP 1,90–2,00 M; descartado. Hatsuhana: 0 ofertas live y rango típico ~COP 2,96–3,06 M; descartado. Merveille Hakone Gora mostró oferta, pero el total con impuestos queda ~COP 1,612 M, por encima del techo; descartado por regla estricta.";
+    "Revisión live 6 sep 2026 para 1–2 ene 2027, 2 adultos, 1 habitación. Nuevo techo COP 2.100.000 TOTAL y onsen privado obligatorio. MATCH: Hotel Marroad Hakone Superior Twin con private open-air bath ~COP 1.988.106 total. REFERENCIA GINYU: Hakone Ginyu sigue siendo el estándar estético, pero no apareció una oferta live que cumpla el techo para esas fechas. DESCARTADOS: LiVEMAX RESORT Hakone Sengokuhara, Junior Suite 52 m² con semi open-air bath, ~COP 2.265.490 total; Merveille Hakone Gora, Twin with Open-Air Bath, ~COP 2.507.256 total; Tsukino Yado Sara, Private Open-Air Bath, ~COP 2.655.128 total; Bettei Koyoi, Open-Air Bath + mountain view, ~COP 3.691.216 total; Hakone Airu, habitaciones con open-air bath, >COP 3,17 M; Kinnotake Tonosawa, >COP 5,5 M. Gora Kadan, Hakone Suishoen, Hakone Kyuan, Hakone Gora Byakudan, Gora Kansuiro y Rakuten STAY VILLA Sengokuhara no mostraron oferta live válida para las fechas exactas. Tenyu y Laforet también quedan fuera por precio de Año Nuevo. No incluir opciones con onsen únicamente público.";
 
   const prefix = "Ryokan 1–2 ene 2027:";
   state.decisions = state.decisions.filter((item) => !item.startsWith(prefix));
-  state.decisions.push(`${prefix} shortlist live filtrado a máximo COP 1.600.000 total para dos; links de verificación incluidos.`);
+  state.decisions.push(`${prefix} máximo COP 2.100.000 total; onsen privado en habitación obligatorio; shortlist sin relleno de opciones públicas o de menor nivel.`);
 
   return state;
 }
