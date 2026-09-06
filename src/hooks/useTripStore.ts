@@ -14,6 +14,7 @@ import { libraryToActivity, normalizeOrders } from "../utils/trip";
 import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
 import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
+import { applyBookedHotels2026 } from "../utils/bookedHotels2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -22,7 +23,7 @@ function cleanState(state: TripState): TripState {
 }
 
 function withRuntimeEnrichment(state: TripState): TripState {
-  return cleanState(enrichTokyoJan8(rebalanceOsakaYearEnd(state)));
+  return cleanState(applyBookedHotels2026(enrichTokyoJan8(rebalanceOsakaYearEnd(state))));
 }
 
 function loadInitialState(): TripState {
