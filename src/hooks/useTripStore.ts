@@ -17,17 +17,21 @@ import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
 function cleanState(state: TripState): TripState {
-  return normalizeOrders(rebalanceOsakaYearEnd(state));
+  return normalizeOrders(state);
+}
+
+function withOsakaRebalance(state: TripState): TripState {
+  return cleanState(rebalanceOsakaYearEnd(state));
 }
 
 function loadInitialState(): TripState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return cleanState(migrateStoredState(JSON.parse(saved) as TripState));
+    if (saved) return withOsakaRebalance(migrateStoredState(JSON.parse(saved) as TripState));
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  return cleanState(structuredClone(initialTrip as TripState));
+  return withOsakaRebalance(structuredClone(initialTrip as TripState));
 }
 
 function uid(prefix: string) {
@@ -43,7 +47,7 @@ export function useTripStore() {
   }, [state]);
 
   const replaceState = useCallback((next: TripState) => {
-    setState(cleanState(next));
+    setState(withOsakaRebalance(next));
     setDirtySince(null);
   }, []);
 
@@ -274,7 +278,7 @@ export function useTripStore() {
   }, [state]);
 
   const resetToInitial = useCallback(() => {
-    replaceState(cleanState(structuredClone(initialTrip as TripState)));
+    replaceState(withOsakaRebalance(structuredClone(initialTrip as TripState)));
     setDirtySince(new Date());
   }, [replaceState]);
 
