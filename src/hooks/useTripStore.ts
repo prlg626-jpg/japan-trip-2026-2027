@@ -15,11 +15,12 @@ import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
 import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
 import { applyBookedHotels2026 } from "../utils/bookedHotels2026";
+import { syncMoneyPage } from "../utils/money";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
 function cleanState(state: TripState): TripState {
-  return normalizeOrders(state);
+  return normalizeOrders(syncMoneyPage(state));
 }
 
 function withRuntimeEnrichment(state: TripState): TripState {
