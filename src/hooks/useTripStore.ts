@@ -9,6 +9,7 @@ import type {
   Reservation,
   SourceLink,
   TripState,
+  ZonePlace,
 } from "../types";
 import { libraryToActivity, normalizeOrders } from "../utils/trip";
 import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
@@ -24,10 +25,13 @@ function cleanState(state: TripState): TripState {
   return normalizeOrders(syncMoneyPage(state));
 }
 
+// Runtime patches must never re-apply itinerary recommendations that can overwrite
+// choices made by the user. Osaka rebalance is therefore only used for a brand-new
+// initial state, not for localStorage/Firestore states.
 function withRuntimeEnrichment(state: TripState): TripState {
   return cleanState(
     applyCurrentItinerary2027(
-      applyBookedHotels2026(enrichTokyoJan8(rebalanceOsakaYearEnd(state))),
+      applyBookedHotels2026(enrichTokyoJan8(state)),
     ),
   );
 }
@@ -39,11 +43,98 @@ function loadInitialState(): TripState {
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  return withRuntimeEnrichment(structuredClone(initialTrip as TripState));
+  return withRuntimeEnrichment(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState)));
 }
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function matchingZonePlace(draft: TripState, activity: Activity) {
+  if (!activity.zoneId) return undefined;
+  return draft.zonePlaces.find(
+    (place) =>
+      place.zoneId === activity.zoneId &&
+      place.title.trim().toLowerCase() === activity.title.trim().toLowerCase(),
+  );
+}
+
+function findMaterializedActivity(draft: TripState, place: ZonePlace) {
+  const canonicalId = `zone-activity-${place.id}`;
+  return draft.activities.find(
+    (activity) =>
+      activity.id === canonicalId ||
+      activity.id === `jan8-suggestion-${place.id}` ||
+      (activity.zoneId === place.zoneId &&
+        activity.title.trim().toLowerCase() === place.title.trim().toLowerCase()),
+  );
+}
+
+function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string, selected: boolean) {
+  const storedPlace = draft.zonePlaces.find((item) => item.id === place.id);
+  if (storedPlace) {
+    storedPlace.selected = selected;
+    storedPlace.suggestedDayId = dayId;
+  }
+
+  let activity = findMaterializedActivity(draft, place);
+  if (!selected) {
+    if (activity) activity.included = false;
+    return;
+  }
+
+  const nextOrder = draft.activities.filter((item) => item.dayId === dayId && item.included).length;
+  if (activity) {
+    activity.dayId = dayId;
+    activity.included = true;
+    activity.order = nextOrder;
+    activity.zoneId = place.zoneId;
+    activity.place = activity.place || place.address || place.title;
+    activity.lat = activity.lat ?? place.lat;
+    activity.lon = activity.lon ?? place.lon;
+    return;
+  }
+
+  activity = normalizeActivityV7({
+    id: `zone-activity-${place.id}`,
+    dayId,
+    order: nextOrder,
+    start: "",
+    end: "",
+    durationMinutes: place.estimatedDurationMinutes,
+    title: place.title,
+    place: place.address || place.title,
+    kind: place.category,
+    lat: place.lat,
+    lon: place.lon,
+    bookingUrl: place.reservationRequired ? place.officialUrl : "",
+    googleMapsUrl: place.googleMapsUrl,
+    legacyStatus: "Seleccionada",
+    status: "idea",
+    note: place.holidayNote || "",
+    priority: place.priorityRank === "essential",
+    included: true,
+    flexible: true,
+    fixed: false,
+    sourceIds: place.sourceIds,
+    description: place.description,
+    zoneId: place.zoneId,
+    displayMode: "flex-list",
+    category: place.category,
+    subCategory: place.subCategory,
+    priorityRank: place.priorityRank,
+    priceScope: place.priceScope,
+    priceLabel: place.priceLabel,
+    priceOriginal: place.priceOriginal,
+    address: place.address || place.title,
+    nearestStation: place.nearestStation,
+    openingHours: place.openingHours,
+    holidayNote: place.holidayNote,
+    reservationRequired: place.reservationRequired,
+    bookingLabel: place.reservationRequired ? "Ver / reservar" : "",
+    routeStrategy: "ordered",
+  });
+  draft.activities.push(activity);
 }
 
 export function useTripStore() {
@@ -71,7 +162,18 @@ export function useTripStore() {
   const updateActivity = useCallback(
     (activity: Activity) =>
       mutate((draft) => {
-        draft.activities = draft.activities.map((item) => (item.id === activity.id ? activity : item));
+        const current = draft.activities.find((item) => item.id === activity.id);
+        if (!current) return;
+        const inclusionChanged = current.included !== activity.included;
+        const next = { ...activity };
+        if (inclusionChanged && next.included) {
+          next.order = draft.activities.filter(
+            (item) => item.dayId === next.dayId && item.included && item.id !== next.id,
+          ).length;
+        }
+        draft.activities = draft.activities.map((item) => (item.id === activity.id ? next : item));
+        const place = matchingZonePlace(draft, next);
+        if (place && inclusionChanged) place.selected = next.included;
       }),
     [mutate],
   );
@@ -79,7 +181,7 @@ export function useTripStore() {
   const addActivity = useCallback(
     (dayId: string, activity?: Partial<Activity>) =>
       mutate((draft) => {
-        const order = draft.activities.filter((item) => item.dayId === dayId).length;
+        const order = draft.activities.filter((item) => item.dayId === dayId && item.included).length;
         draft.activities.push(normalizeActivityV7({
           ...activity,
           id: activity?.id ?? uid("act"),
@@ -94,7 +196,12 @@ export function useTripStore() {
   const deleteActivity = useCallback(
     (activityId: string) =>
       mutate((draft) => {
-        draft.activities = draft.activities.filter((activity) => activity.id !== activityId);
+        const activity = draft.activities.find((item) => item.id === activityId);
+        if (activity) {
+          const place = matchingZonePlace(draft, activity);
+          if (place) place.selected = false;
+        }
+        draft.activities = draft.activities.filter((item) => item.id !== activityId);
         draft.reservations = draft.reservations.map((reservation) =>
           reservation.activityId === activityId ? { ...reservation, activityId: null } : reservation,
         );
@@ -113,7 +220,9 @@ export function useTripStore() {
         activity.dayId = dayId;
         activity.order =
           order ??
-          draft.activities.filter((item) => item.dayId === dayId && item.id !== activityId).length;
+          draft.activities.filter((item) => item.dayId === dayId && item.included && item.id !== activityId).length;
+        const place = matchingZonePlace(draft, activity);
+        if (place) place.suggestedDayId = dayId;
       }),
     [mutate],
   );
@@ -121,15 +230,15 @@ export function useTripStore() {
   const reorderActivity = useCallback(
     (dayId: string, activeId: string, overId: string) =>
       mutate((draft) => {
-        const dayActivities = draft.activities
-          .filter((activity) => activity.dayId === dayId)
+        const included = draft.activities
+          .filter((activity) => activity.dayId === dayId && activity.included)
           .sort((a, b) => a.order - b.order);
-        const activeIndex = dayActivities.findIndex((activity) => activity.id === activeId);
-        const overIndex = dayActivities.findIndex((activity) => activity.id === overId);
+        const activeIndex = included.findIndex((activity) => activity.id === activeId);
+        const overIndex = included.findIndex((activity) => activity.id === overId);
         if (activeIndex < 0 || overIndex < 0) return;
-        const [active] = dayActivities.splice(activeIndex, 1);
-        dayActivities.splice(overIndex, 0, active);
-        dayActivities.forEach((activity, index) => {
+        const [active] = included.splice(activeIndex, 1);
+        included.splice(overIndex, 0, active);
+        included.forEach((activity, index) => {
           const target = draft.activities.find((item) => item.id === activity.id);
           if (target) target.order = index;
         });
@@ -207,7 +316,7 @@ export function useTripStore() {
       mutate((draft) => {
         const item = draft.library.find((entry) => entry.id === libraryItemId);
         if (!item) return;
-        const order = draft.activities.filter((activity) => activity.dayId === dayId).length;
+        const order = draft.activities.filter((activity) => activity.dayId === dayId && activity.included).length;
         draft.activities.push(libraryToActivity(item, dayId, order));
         item.status = "anadido_al_viaje";
       }),
@@ -215,9 +324,14 @@ export function useTripStore() {
   );
 
   const updateZonePlace = useCallback(
-    (place: TripState["zonePlaces"][number]) =>
+    (place: ZonePlace) =>
       mutate((draft) => {
-        draft.zonePlaces = draft.zonePlaces.map((item) => (item.id === place.id ? place : item));
+        const dayId = place.suggestedDayId ?? draft.days.find((day) => day.zoneIds?.includes(place.zoneId))?.id;
+        if (!dayId) {
+          draft.zonePlaces = draft.zonePlaces.map((item) => (item.id === place.id ? place : item));
+          return;
+        }
+        materializeZonePlace(draft, place, dayId, place.selected);
       }),
     [mutate],
   );
@@ -233,11 +347,12 @@ export function useTripStore() {
   const selectRecommendedZonePlaces = useCallback(
     (dayId: string, zoneIds: string[]) =>
       mutate((draft) => {
-        draft.zonePlaces.forEach((place) => {
-          if (zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId) {
-            place.selected = place.priorityRank === "essential" || place.priorityRank === "recommended";
-          }
-        });
+        draft.zonePlaces
+          .filter((place) => zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId)
+          .forEach((place) => {
+            const selected = place.priorityRank === "essential" || place.priorityRank === "recommended";
+            materializeZonePlace(draft, place, dayId, selected);
+          });
       }),
     [mutate],
   );
@@ -245,9 +360,9 @@ export function useTripStore() {
   const clearZonePlaces = useCallback(
     (dayId: string, zoneIds: string[]) =>
       mutate((draft) => {
-        draft.zonePlaces.forEach((place) => {
-          if (zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId) place.selected = false;
-        });
+        draft.zonePlaces
+          .filter((place) => zoneIds.includes(place.zoneId) && place.suggestedDayId === dayId)
+          .forEach((place) => materializeZonePlace(draft, place, dayId, false));
       }),
     [mutate],
   );
@@ -283,7 +398,7 @@ export function useTripStore() {
   }, [state]);
 
   const resetToInitial = useCallback(() => {
-    replaceState(cleanState(structuredClone(initialTrip as TripState)));
+    replaceState(cleanState(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState))));
     setDirtySince(new Date());
   }, [replaceState]);
 
