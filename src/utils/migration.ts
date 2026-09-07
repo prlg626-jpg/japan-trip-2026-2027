@@ -57,7 +57,15 @@ export function normalizeActivityV7(input: Partial<Activity> & Pick<Activity, "i
 }
 
 export function migrateStoredState(stored: TripState): TripState {
-  if (stored.schemaVersion >= 7 && stored.zones && stored.zonePlaces && stored.documents) return enrichTripStateV8(stored);
+  // V8 is a one-time migration. Re-running enrichTripStateV8 on every reload was
+  // resetting user selections (especially Dec 26) and moving activities back to
+  // migration defaults. Once a state is already V8, preserve it exactly.
+  if (stored.schemaVersion >= 8 && stored.zones && stored.zonePlaces && stored.documents) {
+    return structuredClone(stored);
+  }
+  if (stored.schemaVersion >= 7 && stored.zones && stored.zonePlaces && stored.documents) {
+    return enrichTripStateV8(stored);
+  }
   const base = structuredClone(initialTrip as TripState);
   if (stored.purchases?.length) base.purchases = stored.purchases;
   if (stored.settings?.fx) base.settings.fx = stored.settings.fx;
