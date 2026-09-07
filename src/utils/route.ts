@@ -30,15 +30,34 @@ export function estimateSegment(dayId: string, from: Point, to: Point): RouteSeg
   }
   const minutes = Math.max(18, Math.round(10 + km * 4.2));
   const fare = km <= 6 ? 180 : km <= 12 ? 210 : 260;
-  return { id: `auto-${from.id}-${to.id}`, dayId, fromType: from.type, fromId: from.id, toType: to.type, toId: to.id, mode: "metro", line: "Metro/JR sugerido · confirmar ruta", minutes, distanceKm: Math.round(km * 10) / 10, fareJPYPerPerson: fare, fareJPYForTwo: fare * 2, sourceUrl: "https://www.tokyometro.jp/lang_en/ticket/types/regular/index.html", confidence: "estimated", googleMapsUrl: googleRouteUrl(from, to), lastVerified: "2026-08-28", userOverride: false };
+  return { id: `auto-${from.id}-${to.id}`, dayId, fromType: from.type, fromId: from.id, toType: to.type, toId: to.id, mode: "metro", line: "Metro/JR sugerido · confirmar ruta", minutes, distanceKm: Math.round(km * 10) / 10, fareJPYPerPerson: fare, fareJPYForTwo: fare * 2, sourceUrl: "", confidence: "estimated", googleMapsUrl: googleRouteUrl(from, to), lastVerified: "", userOverride: false };
+}
+
+function routeEligible(activity: Activity) {
+  const category = (activity.category || "").toLowerCase();
+  const kind = (activity.kind || "").toLowerCase();
+  return activity.included && !["transport", "flight", "hotel", "rest"].includes(category) && !["transport", "flight", "hotel", "rest"].includes(kind);
 }
 
 export function buildDayRoute(dayId: string, hotel: Hotel | null, activities: Activity[], places: ZonePlace[], curated: RouteSegment[]) {
   const selectedPlaces = places.filter((p) => p.selected).sort((a, b) => a.order - b.order);
   const points: Point[] = [];
   if (hotel && hotel.lat != null && hotel.lon != null) points.push({ id: hotel.id, title: hotel.name, lat: hotel.lat, lon: hotel.lon, type: "hotel" });
-  activities.filter((a) => a.included && a.displayMode !== "flex-list").sort((a, b) => a.order - b.order).forEach((a) => points.push({ id: a.id, title: a.title, lat: a.lat, lon: a.lon, type: "activity" }));
-  selectedPlaces.forEach((p) => points.push({ id: p.id, title: p.title, lat: p.lat, lon: p.lon, type: "zonePlace" }));
+
+  // Any selected attraction can participate in the route, including flexible cards.
+  // Their saved order is the route order the user sees in "Mi día".
+  activities
+    .filter(routeEligible)
+    .sort((a, b) => a.order - b.order)
+    .forEach((a) => points.push({ id: a.id, title: a.title, lat: a.lat, lon: a.lon, type: "activity" }));
+
+  // Legacy zone selections remain supported until they are materialized as cards.
+  selectedPlaces.forEach((p) => {
+    if (!points.some((point) => point.title.toLowerCase() === p.title.toLowerCase())) {
+      points.push({ id: p.id, title: p.title, lat: p.lat, lon: p.lon, type: "zonePlace" });
+    }
+  });
+
   const segments: RouteSegment[] = [];
   for (let i = 0; i < points.length - 1; i += 1) {
     const from = points[i]; const to = points[i + 1];
