@@ -41,7 +41,8 @@ export function applyCurrentItinerary2027(input: TripState): TripState {
     tokyoPurchase.notes = `${tokyoPurchase.notes.replace(/2–9 ene 2027/gi, "1–9 ene 2027")} Fecha extendida a 8 noches; conservar importe actual hasta registrar el nuevo total pagado.`;
   }
 
-  // Remove all obsolete Hakone activities and references from Jan 1–2.
+  // Remove only obsolete Hakone activities. Never clear or overwrite any other
+  // activities/zone choices the users have already selected in the app.
   const obsoleteIds = new Set([
     "d1-break", "d1-transfer", "d1-checkin", "d1-onsen", "d1-kaiseki", "d1-night",
     "d2-break", "d2-onsen", "d2-checkout", "d2-tokyo", "d2-hotel", "d2-dinner",
@@ -138,8 +139,7 @@ export function applyCurrentItinerary2027(input: TripState): TripState {
     jan1.summary = "Salida de Osaka y viaje directo a Tokyo. Sin Hakone. Llegada a Shimbashi y tarde/noche suave.";
     jan1.why = "Eliminamos Hakone y usamos el 1 de enero para movernos directamente a la base definitiva de Tokyo.";
     jan1.hotelId = "hotel-tokyo";
-    jan1.activityIds = [];
-    jan1.zoneIds = [];
+    // IMPORTANT: activityIds and zoneIds are intentionally preserved.
   }
   route(
     "2027-01-01",
@@ -153,22 +153,21 @@ export function applyCurrentItinerary2027(input: TripState): TripState {
   const jan2 = state.days.find((day) => day.id === "2027-01-02");
   if (jan2) {
     jan2.city = "Tokyo";
-    jan2.title = "Tokyo · día abierto por rearmar";
-    jan2.pace = "Relajado";
-    jan2.summary = "Ya amanecemos en Tokyo. Se eliminó por completo la antigua mañana de ryokan/Hakone.";
-    jan2.why = "El día queda libre para redistribuir actividades de Tokyo cuando cerremos la nueva versión del itinerario.";
-    jan2.routeNote = "Sin traslado interurbano. Base: Tokyu Stay Shimbashi.";
+    jan2.title = "Tokyo · día libre completo";
+    jan2.pace = "Flexible";
+    jan2.summary = "Primer día completo en Tokyo. Las actividades que ustedes seleccionen quedan preservadas y las sugerencias se organizarán por zona.";
+    jan2.why = "Ya no existe el traslado desde Hakone, así que el día queda disponible para explorar Tokyo sin cargarlo artificialmente.";
     jan2.hotelId = "hotel-tokyo";
-    jan2.dayRoute = null;
-    jan2.activityIds = [];
-    jan2.zoneIds = [];
+    // IMPORTANT: never clear dayRoute/activityIds/zoneIds here; user choices win.
   }
 
   state.notes["itinerary-change-2027-01-01"] =
-    "Hakone eliminado. Tokyo pasa a 1–9 ene 2027 (8 noches). El 25 dic la ruta recomendada desde Narita a Osaka es N'EX NRT → Shinagawa + Nozomi Shinagawa → Shin-Osaka + JR local → Osaka Station + caminata al Hotel Monterey Le Frere Osaka. El 1 ene: Hotel Monterey → Shin-Osaka → Nozomi a Shinagawa → JR a Shimbashi → Tokyu Stay Shimbashi.";
+    "Hakone eliminado. Tokyo pasa a 1–9 ene 2027 (8 noches). El 25 dic la ruta recomendada desde Narita a Osaka es N'EX NRT → Shinagawa + Nozomi Shinagawa → Shin-Osaka + JR local → Osaka Station + caminata al Hotel Monterey Le Frere Osaka. El 1 ene: Hotel Monterey → Shin-Osaka → Nozomi a Shinagawa → JR a Shimbashi → Tokyu Stay Shimbashi. Las selecciones del usuario en todos los días, incluido 1–2 ene, son autoritativas y no deben borrarse ni reordenarse por parches runtime.";
 
   state.decisions = state.decisions.filter((item) => !/Hakone|ryokan 1–2 ene/i.test(item));
-  state.decisions.push("Hakone eliminado: Tokyo queda del 1 al 9 de enero de 2027; traslado Osaka → Tokyo el 1 de enero en Shinkansen.");
+  if (!state.decisions.includes("Hakone eliminado: Tokyo queda del 1 al 9 de enero de 2027; traslado Osaka → Tokyo el 1 de enero en Shinkansen.")) {
+    state.decisions.push("Hakone eliminado: Tokyo queda del 1 al 9 de enero de 2027; traslado Osaka → Tokyo el 1 de enero en Shinkansen.");
+  }
 
   return state;
 }
