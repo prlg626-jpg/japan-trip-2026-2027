@@ -12,7 +12,12 @@ export function sortedDays(state: TripState): TripDay[] {
 export function activitiesForDay(state: TripState, dayId: string): Activity[] {
   return state.activities
     .filter((activity) => activity.dayId === dayId)
-    .sort((a, b) => a.order - b.order || a.start.localeCompare(b.start));
+    .sort((a, b) => {
+      // "Mi día" always stays visually above suggestions. Within each group,
+      // keep the user's explicit order.
+      if (a.included !== b.included) return a.included ? -1 : 1;
+      return a.order - b.order || a.start.localeCompare(b.start);
+    });
 }
 
 export function activeActivitiesForDay(state: TripState, dayId: string): Activity[] {
@@ -71,16 +76,18 @@ export function countdownLabel(dayId: string, start: string): string {
 export function normalizeOrders(state: TripState): TripState {
   const copy = structuredClone(state);
   for (const day of copy.days) {
-    copy.activities
+    const ordered = copy.activities
       .filter((activity) => activity.dayId === day.id)
-      .sort((a, b) => a.order - b.order || a.start.localeCompare(b.start))
-      .forEach((activity, index) => {
-        activity.order = index;
+      .sort((a, b) => {
+        if (a.included !== b.included) return a.included ? -1 : 1;
+        return a.order - b.order || a.start.localeCompare(b.start);
       });
-    day.activityIds = copy.activities
-      .filter((activity) => activity.dayId === day.id)
-      .sort((a, b) => a.order - b.order)
-      .map((activity) => activity.id);
+
+    ordered.forEach((activity, index) => {
+      activity.order = index;
+    });
+
+    day.activityIds = ordered.map((activity) => activity.id);
   }
   return copy;
 }
