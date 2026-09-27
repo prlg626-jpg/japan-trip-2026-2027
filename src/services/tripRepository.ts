@@ -39,6 +39,27 @@ export interface CloudSaveReceipt {
   activityFingerprint: string;
 }
 
+export async function saveSessionRecoverySnapshot(
+  db: Firestore,
+  user: User,
+  state: TripState,
+  tripId = tripIdFromEnv,
+) {
+  const id = tripId || state.trip.id;
+  const snapshotRef = doc(db, "trips", id, "settings", `session-recovery-${user.uid}`);
+  const payload = withoutUndefined({
+    savedAt: new Date().toISOString(),
+    userId: user.uid,
+    activityBlackBox: state.activityBlackBox ?? null,
+    selectedActivities: state.activities.filter((activity) => activity.included),
+    selectedZonePlaces: state.zonePlaces.filter((place) => place.selected),
+  });
+  await setDoc(snapshotRef, payload, { merge: false });
+  const verified = await getDocFromServer(snapshotRef);
+  if (!verified.exists()) throw new Error("No se pudo verificar el respaldo remoto de la sesión.");
+  return verified.data();
+}
+
 function activityFingerprint(state: TripState) {
   const activities = state.activities
     .filter((activity) => activity.included)
