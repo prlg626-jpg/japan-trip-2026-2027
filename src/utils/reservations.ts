@@ -60,6 +60,9 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
       activityAlreadyPurchased(state, activity)
     ) return;
 
+    const link = activity.bookingUrl || reservation.link;
+    if (!link) return;
+
     rows.push({
       ...reservation,
       activityId: activity.id,
@@ -69,13 +72,13 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
         reservation.estimatedPriceCOP > 0
           ? reservation.estimatedPriceCOP
           : activityEstimate(activity, state),
-      link: activity.bookingUrl || reservation.link,
+      link,
     });
   });
 
   active.forEach((activity) => {
     if (represented.has(activity.id)) return;
-    if (!activity.reservationRequired && !activity.bookingUrl) return;
+    if (!activity.bookingUrl) return;
     if (
       activity.status === "reservada" ||
       activity.status === "pagada" ||
