@@ -12,7 +12,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
-import type { TripState } from "../types";
+import type { ActivityBlackBox, TripState } from "../types";
 
 const tripIdFromEnv = import.meta.env.VITE_TRIP_ID || "japan-trip-2026-2027";
 
@@ -119,6 +119,13 @@ export async function writeTripState(db: Firestore, state: TripState, tripId = t
   await setDoc(doc(db, "trips", id, "settings", "budget"), withoutUndefined(state.budget), {
     merge: false,
   });
+  if (state.activityBlackBox) {
+    await setDoc(
+      doc(db, "trips", id, "settings", "activity-black-box"),
+      withoutUndefined(state.activityBlackBox),
+      { merge: false },
+    );
+  }
   await Promise.all([
     replaceCollection(db, id, "days", state.days),
     replaceCollection(db, id, "activities", state.activities),
@@ -143,6 +150,7 @@ export function subscribeTripState(
   const latest: Partial<Record<CollectionName, unknown[]>> = {};
   let settings: Partial<TripState> | null = null;
   let budget: TripState["budget"] | null = null;
+  let activityBlackBox: ActivityBlackBox | undefined;
   let pending = false;
 
   const emit = () => {
@@ -166,6 +174,7 @@ export function subscribeTripState(
         zonePlaces: (latest.zonePlaces ?? []) as TripState["zonePlaces"],
         routeSegments: (latest.routeSegments ?? []) as TripState["routeSegments"],
         documents: (latest.documents ?? []) as TripState["documents"],
+        activityBlackBox,
       },
       pending,
     );
@@ -183,6 +192,15 @@ export function subscribeTripState(
     onSnapshot(doc(db, "trips", tripId, "settings", "budget"), (snapshot) => {
       pending = pending || snapshot.metadata.hasPendingWrites;
       if (snapshot.exists()) budget = snapshot.data() as TripState["budget"];
+      emit();
+    }),
+  );
+  unsubscribers.push(
+    onSnapshot(doc(db, "trips", tripId, "settings", "activity-black-box"), (snapshot) => {
+      pending = pending || snapshot.metadata.hasPendingWrites;
+      activityBlackBox = snapshot.exists()
+        ? (snapshot.data() as ActivityBlackBox)
+        : undefined;
       emit();
     }),
   );
