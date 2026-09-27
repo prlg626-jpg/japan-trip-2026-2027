@@ -277,7 +277,7 @@ function ActivityCard({
 function App() {
   const store = useTripStore();
   const { state } = store;
-  const sync = useFirebaseSync(state, store.replaceState);
+  const sync = useFirebaseSync(state, store.replaceState, store.loadedFromLocal);
   const days = useMemo(() => sortedDays(state), [state]);
   const initialDay = useMemo(() => nextTravelDay(state), [state]);
   const [tab, setTab] = useState<Tab>("today");
