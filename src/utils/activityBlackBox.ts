@@ -138,3 +138,12 @@ export function writeLocalActivityBlackBox(state: TripState) {
     console.warn("Could not write activity black box", error);
   }
 }
+
+
+export function newestActivityBlackBox(
+  ...boxes: Array<ActivityBlackBox | null | undefined>
+): ActivityBlackBox | null {
+  const valid = boxes.filter((box): box is ActivityBlackBox => Boolean(box && box.version === 1));
+  if (!valid.length) return null;
+  return valid.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+}
