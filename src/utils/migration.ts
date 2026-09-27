@@ -1,6 +1,7 @@
 import initialTrip from "../data/initialTrip.json";
 import type { Activity, TripState } from "../types";
 import { enrichTripStateV8 } from "./v8Enrichment";
+import { inferMealSlot } from "./mealSlots";
 
 export function normalizeActivityV7(input: Partial<Activity> & Pick<Activity, "id" | "dayId" | "title">): Activity {
   const transport = input.displayMode === "transport" || input.category === "transport";
@@ -53,6 +54,7 @@ export function normalizeActivityV7(input: Partial<Activity> & Pick<Activity, "i
     bookingLabel: input.bookingLabel ?? (input.bookingUrl ? "Abrir" : ""),
     mustKeep: input.mustKeep ?? false,
     routeStrategy: input.routeStrategy ?? (transport ? "ordered" : "flexible"),
+    mealSlot: inferMealSlot(input),
   };
 }
 
