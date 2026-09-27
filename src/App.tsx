@@ -94,10 +94,12 @@ function SyncPill({
   status,
   configured,
   message,
+  verifiedAt,
 }: {
   status: string;
   configured: boolean;
   message: string;
+  verifiedAt?: string | null;
 }) {
   const Icon = configured ? (status === "offline" ? CloudOff : Cloud) : CloudOff;
   const label = !configured
@@ -116,6 +118,11 @@ function SyncPill({
       <Icon size={15} />
       {label}
       {message ? <small>{message}</small> : null}
+      {status === "verified" && verifiedAt ? (
+        <small>
+          Verificado {new Date(verifiedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        </small>
+      ) : null}
     </span>
   );
 }
@@ -369,7 +376,7 @@ function App() {
             <LogIn size={17} />
             Sign in with Google
           </button>
-          <SyncPill status={sync.status} configured={sync.configured} message={sync.message} />
+          <SyncPill status={sync.status} configured={sync.configured} message={sync.message} verifiedAt={sync.verifiedAt} />
         </section>
       </main>
     );
@@ -393,7 +400,7 @@ function App() {
             );
           })}
         </nav>
-        <SyncPill status={sync.status} configured={sync.configured} message={sync.message} />
+        <SyncPill status={sync.status} configured={sync.configured} message={sync.message} verifiedAt={sync.verifiedAt} />
       </aside>
 
       <main className="mainPane">
@@ -403,7 +410,7 @@ function App() {
             <h1>{state.trip.displayName}</h1>
           </div>
           <div className="topActions">
-            <SyncPill status={sync.status} configured={sync.configured} message={sync.message} />
+            <SyncPill status={sync.status} configured={sync.configured} message={sync.message} verifiedAt={sync.verifiedAt} />
             {sync.configured ? (
               sync.user ? (
                 <button className="ghost" type="button" onClick={sync.signOut}>
