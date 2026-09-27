@@ -50,7 +50,7 @@ import { blankPurchase, PurchaseEditor } from "./components/PurchaseEditor";
 import { ReservationEditor } from "./components/ReservationEditor";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useTripStore } from "./hooks/useTripStore";
-import type { Activity, Hotel, Purchase, Reservation, TripDay, ZonePlace } from "./types";
+import type { Activity, Hotel, Purchase, Reservation, TripDay } from "./types";
 import { activityEstimate, calculateBudget, formatCOP, formatMoney, hotelExpectedCOP } from "./utils/money";
 import {
   candidateZonePlacesForDay,
