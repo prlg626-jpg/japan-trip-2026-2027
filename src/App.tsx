@@ -815,7 +815,11 @@ function App() {
                   <span>{reservation.travelDate}</span>
                   <h4>{reservation.name}</h4>
                   <p>{reservation.currentStatus} · abre: {reservation.opens}</p>
-                  <strong>{formatCOP(reservation.estimatedPriceCOP)}</strong>
+                  <strong>
+                    {reservation.estimatedPriceCOP > 0
+                      ? formatCOP(reservation.estimatedPriceCOP)
+                      : "Precio por confirmar"}
+                  </strong>
                   <div className="actionRow">
                     {reservation.link ? (
                       <a className="chipButton" href={reservation.link} target="_blank" rel="noreferrer">
