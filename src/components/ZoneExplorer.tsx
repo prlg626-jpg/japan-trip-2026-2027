@@ -65,13 +65,14 @@ export function ZoneExplorer({
 }) {
   const [filter, setFilter] = useState("all");
   const [zoneId, setZoneId] = useState(zones[0]?.id ?? "all");
+  const zoneKey = zones.map((zone) => zone.id).join("|");
 
   useEffect(() => {
     if (!zones.some((zone) => zone.id === zoneId)) {
       setZoneId(zones[0]?.id ?? "all");
     }
     setFilter("all");
-  }, [zones, zoneId]);
+  }, [zoneKey]);
 
   const activeZone = zones.find((zone) => zone.id === zoneId) ?? zones[0];
   const zonePlaces = places.filter(
