@@ -29,6 +29,10 @@ import {
   applyAuthorizedItineraryBalanceV1,
   bestGeographicInsertionIndex,
 } from "../utils/itineraryIntelligence";
+import {
+  applyCurrentActivityPricing,
+  removePlaceholderNyeDinnerV1,
+} from "../utils/pricingCleanup2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -48,11 +52,14 @@ function withRuntimeEnrichment(state: TripState): TripState {
 }
 
 function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["activityBlackBox"] | null) {
-  const migration = applyAuthorizedItineraryBalanceV1(state);
-  const cleaned = cleanState(migration.state);
-  cleaned.activityBlackBox = migration.migrated
-    ? captureActivityBlackBox(cleaned)
-    : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
+  const balanceMigration = applyAuthorizedItineraryBalanceV1(state);
+  const dinnerCleanup = removePlaceholderNyeDinnerV1(balanceMigration.state);
+  const priced = applyCurrentActivityPricing(dinnerCleanup.state);
+  const cleaned = cleanState(priced);
+  cleaned.activityBlackBox =
+    balanceMigration.migrated || dinnerCleanup.migrated
+      ? captureActivityBlackBox(cleaned)
+      : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
   return cleaned;
 }
 
