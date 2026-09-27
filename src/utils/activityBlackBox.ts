@@ -130,10 +130,8 @@ export function readLocalActivityBlackBox(): ActivityBlackBox | null {
 
 export function writeLocalActivityBlackBox(state: TripState) {
   try {
-    localStorage.setItem(
-      LOCAL_BLACK_BOX_KEY,
-      JSON.stringify(captureActivityBlackBox(state)),
-    );
+    const blackBox = state.activityBlackBox ?? captureActivityBlackBox(state);
+    localStorage.setItem(LOCAL_BLACK_BOX_KEY, JSON.stringify(blackBox));
   } catch (error) {
     console.warn("Could not write activity black box", error);
   }
