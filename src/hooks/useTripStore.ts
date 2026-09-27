@@ -20,6 +20,7 @@ import { applyCurrentItinerary2027 } from "../utils/currentItinerary2027";
 import { syncMoneyPage } from "../utils/money";
 import {
   captureActivityBlackBox,
+  newestActivityBlackBox,
   readLocalActivityBlackBox,
   restoreActivityBlackBox,
   writeLocalActivityBlackBox,
@@ -49,7 +50,10 @@ function loadInitialState(): TripState {
     if (saved) {
       const stored = migrateStoredState(JSON.parse(saved) as TripState);
       const enriched = withRuntimeEnrichment(stored);
-      const blackBox = stored.activityBlackBox ?? readLocalActivityBlackBox();
+      const blackBox = newestActivityBlackBox(
+        stored.activityBlackBox,
+        readLocalActivityBlackBox(),
+      );
       const restored = restoreActivityBlackBox(enriched, blackBox);
       restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
       return cleanState(restored);
@@ -165,6 +169,13 @@ function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string,
 }
 
 export function useTripStore() {
+  const [loadedFromLocal] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(STORAGE_KEY));
+    } catch {
+      return false;
+    }
+  });
   const [state, setState] = useState<TripState>(loadInitialState);
   const [dirtySince, setDirtySince] = useState<Date | null>(null);
 
@@ -175,8 +186,12 @@ export function useTripStore() {
 
   const replaceState = useCallback((next: TripState) => {
     const enriched = withRuntimeEnrichment(next);
-    const restored = restoreActivityBlackBox(enriched, next.activityBlackBox);
-    restored.activityBlackBox = captureActivityBlackBox(restored);
+    const blackBox = newestActivityBlackBox(
+      next.activityBlackBox,
+      readLocalActivityBlackBox(),
+    );
+    const restored = restoreActivityBlackBox(enriched, blackBox);
+    restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
     setState(cleanState(restored));
     setDirtySince(null);
   }, []);
@@ -454,6 +469,7 @@ export function useTripStore() {
   const api = useMemo(
     () => ({
       state,
+      loadedFromLocal,
       dirtySince,
       replaceState,
       mutate,
@@ -481,6 +497,7 @@ export function useTripStore() {
     }),
     [
       state,
+      loadedFromLocal,
       dirtySince,
       replaceState,
       mutate,
