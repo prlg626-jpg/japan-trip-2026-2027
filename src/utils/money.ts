@@ -42,7 +42,11 @@ export function activityEstimate(activity: Activity, state: TripState): number {
     "v7-6-jins": "d3-jins",
   };
   const costId = activity.costItemId || legacyCostAliases[activity.id];
-  const cost = costId ? state.costs.find((item) => item.id === costId) : null;
+  const cost = costId
+    ? state.costs.find((item) => item.id === costId)
+    : state.costs.find(
+        (item) => item.activityId === activity.id || item.id === activity.id,
+      );
   if (cost) return estimateFromOriginal(cost, state);
 
   // Many hotspot cards carry the verified native price directly rather than a
