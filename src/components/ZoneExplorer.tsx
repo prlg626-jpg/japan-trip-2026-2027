@@ -1,19 +1,213 @@
-import { useMemo, useState } from "react";
-import { ExternalLink, MapPin, RotateCcw, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, MapPin } from "lucide-react";
 import type { MoneyOriginal, Zone, ZonePlace } from "../types";
+import { visualGroupForZonePlace } from "../utils/itineraryIntelligence";
 import "../v8.css";
 
-const categoryNames:Record<string,string>={explore:"Paseo / barrio",tourism:"Lugar turístico",experience:"Experiencia",museum:"Museo",anime:"Anime / gaming",gaming:"Gaming",shopping:"Compras",nature:"Naturaleza",market:"Mercado",food:"Restaurante",cafe:"Café"};
-const JPY_COP=19.3465, USD_COP=3071.41;
-function cop(n:number){return new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Math.round(n));}
-function priceCOP(original:MoneyOriginal|null,scope:string,label:string){if(!original||!original.unit){if(/gratis/i.test(label))return"Gratis";return label||"Precio por verificar";}const unit=original.currency==="JPY"?original.unit*JPY_COP:original.currency==="USD"?original.unit*USD_COP:original.unit;const qty=scope==="per_person"?2:(original.quantity||1);const suffix=scope==="per_person"?"aprox. para los dos":scope==="per_item"?"por producto":scope==="for_two"?"para los dos":"aprox.";return`${cop(unit*qty)} · ${suffix}`;}
+const categoryNames: Record<string, string> = {
+  explore: "Paseo / barrio",
+  tourism: "Lugar turístico",
+  experience: "Experiencia",
+  museum: "Museo",
+  anime: "Anime / gaming",
+  gaming: "Gaming",
+  shopping: "Compras",
+  nature: "Naturaleza",
+  market: "Mercado",
+  food: "Restaurante",
+  cafe: "Café",
+};
 
-export function ZoneExplorer({zones,places,onToggle,onRecommended,onClear,ordinalOffset=0}:{zones:Zone[];places:ZonePlace[];onToggle:(p:ZonePlace)=>void;onRecommended:()=>void;onClear:()=>void;ordinalOffset?:number}){
- const [filter,setFilter]=useState("all");const [zoneId,setZoneId]=useState(zones[0]?.id??"all");
- const activeZone=zones.find(z=>z.id===zoneId)??zones[0];const zonePlaces=places.filter(p=>!activeZone||p.zoneId===activeZone.id);
- const categories=useMemo(()=>Array.from(new Set(zonePlaces.map(p=>p.category))).sort(),[zonePlaces]);
- const visible=zonePlaces.filter(p=>filter==="all"||p.category===filter||(filter==="selected"&&p.selected)||(filter==="essential"&&p.priorityRank==="essential"));
- const selected=places.filter(p=>p.selected).sort((a,b)=>a.order-b.order);const ordinal=new Map(selected.map((p,i)=>[p.id,i+1+ordinalOffset]));
- if(!zones.length&&!places.length)return null;
- return <section className="zoneExplorer"><header className="zoneHeader"><span>Elige lo que sí quieres hacer</span><h3>{activeZone?.name??"Opciones de la zona"}</h3><p>{activeZone?.description}</p>{zones.length>1?<div className="zoneSelector">{zones.map(z=><button type="button" key={z.id} className={zoneId===z.id?"active":""} onClick={()=>setZoneId(z.id)}>{z.name}</button>)}</div>:null}<div className="zoneActions"><button className="chipButton" type="button" onClick={onRecommended}><Sparkles size={15}/>Marcar recomendados</button><button className="chipButton" type="button" onClick={onClear}><RotateCcw size={15}/>Quitar selección</button></div></header><div className="filterStrip"><button className={filter==="all"?"active":""} onClick={()=>setFilter("all")}>Todo ({zonePlaces.length})</button><button className={filter==="selected"?"active":""} onClick={()=>setFilter("selected")}>Mi día ({selected.length})</button><button className={filter==="essential"?"active":""} onClick={()=>setFilter("essential")}>Imperdibles</button>{categories.map(c=><button key={c} className={filter===c?"active":""} onClick={()=>setFilter(c)}>{categoryNames[c]??c}</button>)}</div><div className="zonePlaceList">{visible.map(place=><article key={place.id} className={`zonePlaceCard category-${place.category} ${place.selected?"selected":""}`}><div className="zonePlaceTitle"><div><span className="placeType">{categoryNames[place.category]??place.category}</span><h4>{place.selected&&ordinal.get(place.id)?`${ordinal.get(place.id)}. `:""}{place.title}</h4></div>{place.reservationRequired?<span className="reservationBadge">Reserva</span>:null}</div><p className="placeDescription"><strong>Qué es:</strong> {place.description}</p><div className="placeMeta">{place.nearestStation?<span>🚉 {place.nearestStation}</span>:null}<span>⏱ {place.estimatedDurationMinutes?`≈ ${place.estimatedDurationMinutes} min`:"a tu ritmo"}</span><span className="placePrice">💰 {priceCOP(place.priceOriginal,place.priceScope,place.priceLabel)}</span>{place.ratingContext?<span>⭐ {place.ratingContext}</span>:null}</div>{place.holidayNote?<p className="warningText">⚠ {place.holidayNote}</p>:null}<button className="selectPlaceBig" type="button" onClick={()=>onToggle({...place,selected:!place.selected})}>{place.selected?"✓ Está en mi día · quitar":"+ Añadir a mi día"}</button><div className="actionRow">{place.officialUrl?<a className="chipButton" href={place.officialUrl} target="_blank" rel="noreferrer"><ExternalLink size={14}/>Ver sitio</a>:null}<a className="chipButton" href={place.googleMapsUrl} target="_blank" rel="noreferrer"><MapPin size={14}/>Cómo llegar</a></div></article>)}</div></section>;
+const JPY_COP = 19.3465;
+const USD_COP = 3071.41;
+
+function cop(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(Math.round(n));
+}
+
+function priceCOP(original: MoneyOriginal | null, scope: string, label: string) {
+  if (!original || !original.unit) {
+    if (/gratis/i.test(label)) return "Gratis";
+    return label || "Precio por verificar";
+  }
+  const unit =
+    original.currency === "JPY"
+      ? original.unit * JPY_COP
+      : original.currency === "USD"
+        ? original.unit * USD_COP
+        : original.unit;
+  const qty = scope === "per_person" ? 2 : original.quantity || 1;
+  const suffix =
+    scope === "per_person"
+      ? "aprox. para los dos"
+      : scope === "per_item"
+        ? "por producto"
+        : scope === "for_two"
+          ? "para los dos"
+          : "aprox.";
+  return `${cop(unit * qty)} · ${suffix}`;
+}
+
+export function ZoneExplorer({
+  zones,
+  places,
+  onAdd,
+  dayLabel,
+}: {
+  zones: Zone[];
+  places: ZonePlace[];
+  onAdd: (place: ZonePlace) => void;
+  dayLabel: string;
+}) {
+  const [filter, setFilter] = useState("all");
+  const [zoneId, setZoneId] = useState(zones[0]?.id ?? "all");
+
+  useEffect(() => {
+    if (!zones.some((zone) => zone.id === zoneId)) {
+      setZoneId(zones[0]?.id ?? "all");
+    }
+    setFilter("all");
+  }, [zones, zoneId]);
+
+  const activeZone = zones.find((zone) => zone.id === zoneId) ?? zones[0];
+  const zonePlaces = places.filter(
+    (place) => !activeZone || place.zoneId === activeZone.id,
+  );
+  const categories = useMemo(
+    () => Array.from(new Set(zonePlaces.map((place) => place.category))).sort(),
+    [zonePlaces],
+  );
+  const visible = zonePlaces.filter(
+    (place) =>
+      filter === "all" ||
+      place.category === filter ||
+      (filter === "essential" && place.priorityRank === "essential"),
+  );
+
+  if (!zones.length || !places.length) return null;
+
+  return (
+    <section className="zoneExplorer candidateExplorer">
+      <header className="zoneHeader">
+        <span>También encaja aquí</span>
+        <h3>{activeZone?.name ?? "Opciones cercanas"}</h3>
+        <p>
+          Estas tarjetas no están seleccionadas. Pueden aparecer en más de un día
+          compatible; al añadir una, se asigna a este día y desaparece de las demás
+          sugerencias.
+        </p>
+        {zones.length > 1 ? (
+          <div className="zoneSelector">
+            {zones.map((zone) => (
+              <button
+                type="button"
+                key={zone.id}
+                className={zoneId === zone.id ? "active" : ""}
+                onClick={() => setZoneId(zone.id)}
+              >
+                {zone.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </header>
+
+      <div className="filterStrip">
+        <button
+          type="button"
+          className={filter === "all" ? "active" : ""}
+          onClick={() => setFilter("all")}
+        >
+          Todo ({zonePlaces.length})
+        </button>
+        <button
+          type="button"
+          className={filter === "essential" ? "active" : ""}
+          onClick={() => setFilter("essential")}
+        >
+          Imperdibles
+        </button>
+        {categories.map((category) => (
+          <button
+            type="button"
+            key={category}
+            className={filter === category ? "active" : ""}
+            onClick={() => setFilter(category)}
+          >
+            {categoryNames[category] ?? category}
+          </button>
+        ))}
+      </div>
+
+      <div className="zonePlaceList">
+        {visible.map((place) => (
+          <article
+            key={place.id}
+            className={`zonePlaceCard visual-${visualGroupForZonePlace(place)}`}
+          >
+            <div className="zonePlaceTitle">
+              <div>
+                <span className="placeType">
+                  {categoryNames[place.category] ?? place.category}
+                </span>
+                <h4>{place.title}</h4>
+              </div>
+              {place.reservationRequired ? (
+                <span className="reservationBadge">Reserva</span>
+              ) : null}
+            </div>
+            <p className="placeDescription">
+              <strong>Qué es:</strong> {place.description}
+            </p>
+            <div className="placeMeta">
+              {place.nearestStation ? <span>🚉 {place.nearestStation}</span> : null}
+              <span>
+                ⏱ {place.estimatedDurationMinutes ? `≈ ${place.estimatedDurationMinutes} min` : "a tu ritmo"}
+              </span>
+              <span className="placePrice">
+                💰 {priceCOP(place.priceOriginal, place.priceScope, place.priceLabel)}
+              </span>
+              {place.ratingContext ? <span>⭐ {place.ratingContext}</span> : null}
+            </div>
+            {place.holidayNote ? (
+              <p className="warningText">⚠ {place.holidayNote}</p>
+            ) : null}
+            <button
+              className="selectPlaceBig"
+              type="button"
+              onClick={() => onAdd(place)}
+            >
+              + Añadir a {dayLabel}
+            </button>
+            <div className="actionRow">
+              {place.officialUrl ? (
+                <a
+                  className="chipButton"
+                  href={place.officialUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink size={14} />
+                  Ver sitio
+                </a>
+              ) : null}
+              <a
+                className="chipButton"
+                href={place.googleMapsUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MapPin size={14} />
+                Cómo llegar
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
