@@ -47,7 +47,7 @@ function withRuntimeEnrichment(state: TripState): TripState {
   );
 }
 
-function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["activityBlackBox"]) {
+function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["activityBlackBox"] | null) {
   const migration = applyAuthorizedItineraryBalanceV1(state);
   const cleaned = cleanState(migration.state);
   cleaned.activityBlackBox = migration.migrated
