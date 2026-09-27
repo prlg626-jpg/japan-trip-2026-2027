@@ -120,36 +120,39 @@ export function applyDec26RouteReviewV1(input: TripState): {
   state: TripState;
   migrated: boolean;
 } {
-  if (input.notes?.[DEC26_ROUTE_KEY]) return { state: input, migrated: false };
-
+  const alreadyMigrated = Boolean(input.notes?.[DEC26_ROUTE_KEY]);
   const state = structuredClone(input);
   const day = state.days.find((item) => item.id === "2026-12-26");
   if (!day) return { state, migrated: false };
 
-  // Keep exactly the user's selected activities; only change their order.
-  const preferred = [
-    "v7-26-history",
-    "v7-26-castlepark",
-    "zone-activity-zp-okawa",
-    "v7-26-tenjin",
-    "zone-activity-zp-nakanoshima26",
-  ];
-  const rank = new Map(preferred.map((id, index) => [id, index]));
+  // Keep exactly the user's selected activities. The ordering migration happens
+  // once; the route copy below is idempotent because an older runtime patch may
+  // still rewrite the dayRoute before this final protected-state pass.
+  if (!alreadyMigrated) {
+    const preferred = [
+      "v7-26-history",
+      "v7-26-castlepark",
+      "zone-activity-zp-okawa",
+      "v7-26-tenjin",
+      "zone-activity-zp-nakanoshima26",
+    ];
+    const rank = new Map(preferred.map((id, index) => [id, index]));
 
-  const active = state.activities
-    .filter((activity) => activity.dayId === day.id && activity.included)
-    .sort((a, b) => {
-      const ra = rank.get(a.id);
-      const rb = rank.get(b.id);
-      if (ra != null && rb != null) return ra - rb;
-      if (ra != null) return -1;
-      if (rb != null) return 1;
-      return a.order - b.order;
+    const active = state.activities
+      .filter((activity) => activity.dayId === day.id && activity.included)
+      .sort((a, b) => {
+        const ra = rank.get(a.id);
+        const rb = rank.get(b.id);
+        if (ra != null && rb != null) return ra - rb;
+        if (ra != null) return -1;
+        if (rb != null) return 1;
+        return a.order - b.order;
+      });
+
+    active.forEach((activity, index) => {
+      activity.order = index;
     });
-
-  active.forEach((activity, index) => {
-    activity.order = index;
-  });
+  }
 
   patchActivity(state, "v7-26-history", {
     estimatedDurationMinutes: 90,
@@ -195,8 +198,10 @@ export function applyDec26RouteReviewV1(input: TripState): {
   };
 
   state.notes = state.notes ?? {};
-  state.notes[DEC26_ROUTE_KEY] =
-    "Reordenado sin cambiar selecciones: History → Castle Park → Sakuranomiya → Tenjinbashi → Nakanoshima.";
+  if (!alreadyMigrated) {
+    state.notes[DEC26_ROUTE_KEY] =
+      "Reordenado sin cambiar selecciones: History → Castle Park → Sakuranomiya → Tenjinbashi → Nakanoshima.";
+  }
 
-  return { state, migrated: true };
+  return { state, migrated: !alreadyMigrated };
 }
