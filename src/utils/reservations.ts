@@ -12,6 +12,29 @@ const LEGACY_ACTIVITY_ALIASES: Record<string, string> = {
   "d8-brother": "v7-8-brother",
 };
 
+const COST_ALIASES: Record<string, string> = {
+  "v7-28-chopsticks": "d26-chopsticks",
+  "v7-28-matcha": "d26-matcha",
+  "v7-5-perfume": "d5-perfume",
+  "v7-6-jins": "d3-jins",
+  "v7-8-brother": "d8-brother",
+  "jan8-suggestion-zp-pillow": "d6-pillow",
+};
+
+function costForActivity(state: TripState, activity: Activity) {
+  const alias = COST_ALIASES[activity.id];
+  return state.costs.find(
+    (cost) =>
+      cost.activityId === activity.id ||
+      cost.id === activity.costItemId ||
+      cost.id === alias,
+  );
+}
+
+function bookingLinkForActivity(state: TripState, activity: Activity) {
+  return activity.bookingUrl || costForActivity(state, activity)?.link || "";
+}
+
 function finishedStatus(value: string) {
   return /comprado|pagado|reservado|completado/i.test(value || "");
 }
@@ -60,7 +83,7 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
       activityAlreadyPurchased(state, activity)
     ) return;
 
-    const link = activity.bookingUrl || reservation.link;
+    const link = bookingLinkForActivity(state, activity) || reservation.link;
     if (!link) return;
 
     rows.push({
@@ -78,7 +101,9 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
 
   active.forEach((activity) => {
     if (represented.has(activity.id)) return;
-    if (!activity.bookingUrl) return;
+    const cost = costForActivity(state, activity);
+    const link = bookingLinkForActivity(state, activity);
+    if (!link) return;
     if (
       activity.status === "reservada" ||
       activity.status === "pagada" ||
@@ -91,12 +116,13 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
       activityId: activity.id,
       travelDate: activity.dayId,
       name: activity.title,
-      currentStatus: "POR RESERVAR",
-      opens: "Revisar disponibilidad",
+      currentStatus: cost?.reservationStatus || "POR RESERVAR",
+      opens: cost?.opens || "Revisar disponibilidad",
       estimatedPriceCOP: activityEstimate(activity, state),
-      link: activity.bookingUrl,
-      provider: "Desde actividad seleccionada",
+      link,
+      provider: cost?.link ? "Fuente de reserva/precio" : "Desde actividad seleccionada",
       reminderNotes:
+        cost?.note ||
         activity.holidayNote ||
         activity.note ||
         "Esta reserva aparece automáticamente porque la actividad está activa.",
