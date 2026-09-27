@@ -13,7 +13,6 @@ import type {
 } from "../types";
 import { libraryToActivity, normalizeOrders } from "../utils/trip";
 import { migrateStoredState, normalizeActivityV7 } from "../utils/migration";
-import { rebalanceOsakaYearEnd } from "../utils/osakaRebalance";
 import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
 import { applyBookedHotels2026 } from "../utils/bookedHotels2026";
 import { applyCurrentItinerary2027 } from "../utils/currentItinerary2027";
@@ -26,6 +25,10 @@ import {
   writeLocalActivityBlackBox,
 } from "../utils/activityBlackBox";
 import { defaultMealStart, inferMealSlot, inferZoneMealSlot, mealInsertionIndex } from "../utils/mealSlots";
+import {
+  applyAuthorizedItineraryBalanceV1,
+  bestGeographicInsertionIndex,
+} from "../utils/itineraryIntelligence";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -44,6 +47,15 @@ function withRuntimeEnrichment(state: TripState): TripState {
   );
 }
 
+function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["activityBlackBox"]) {
+  const migration = applyAuthorizedItineraryBalanceV1(state);
+  const cleaned = cleanState(migration.state);
+  cleaned.activityBlackBox = migration.migrated
+    ? captureActivityBlackBox(cleaned)
+    : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
+  return cleaned;
+}
+
 function loadInitialState(): TripState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -56,14 +68,13 @@ function loadInitialState(): TripState {
       );
       const restored = restoreActivityBlackBox(enriched, blackBox);
       restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
-      return cleanState(restored);
+      return finalizeProtectedState(restored, blackBox);
     }
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  const fresh = withRuntimeEnrichment(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState)));
-  fresh.activityBlackBox = captureActivityBlackBox(fresh);
-  return fresh;
+  const fresh = withRuntimeEnrichment(structuredClone(initialTrip as TripState));
+  return finalizeProtectedState(fresh);
 }
 
 function uid(prefix: string) {
@@ -107,7 +118,9 @@ function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string,
     .filter((item) => item.dayId === dayId && item.included && item.id !== activity?.id)
     .sort((a, b) => a.order - b.order);
   const mealSlot = inferZoneMealSlot(place);
-  const nextOrder = mealInsertionIndex(mealSlot, active.length);
+  const nextOrder = mealSlot
+    ? mealInsertionIndex(mealSlot, active.length)
+    : bestGeographicInsertionIndex(active, place.lat, place.lon);
   active.forEach((item, index) => {
     item.order = index >= nextOrder ? index + 1 : index;
   });
@@ -192,7 +205,7 @@ export function useTripStore() {
     );
     const restored = restoreActivityBlackBox(enriched, blackBox);
     restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
-    setState(cleanState(restored));
+    setState(finalizeProtectedState(restored, blackBox));
     setDirtySince(null);
   }, []);
 
@@ -219,7 +232,9 @@ export function useTripStore() {
           const active = draft.activities
             .filter((item) => item.dayId === next.dayId && item.included && item.id !== next.id)
             .sort((a, b) => a.order - b.order);
-          const insertion = mealInsertionIndex(next.mealSlot, active.length);
+          const insertion = next.mealSlot
+            ? mealInsertionIndex(next.mealSlot, active.length)
+            : bestGeographicInsertionIndex(active, next.lat, next.lon);
           active.forEach((item, index) => {
             item.order = index >= insertion ? index + 1 : index;
           });
@@ -240,7 +255,9 @@ export function useTripStore() {
         const active = draft.activities
           .filter((item) => item.dayId === dayId && item.included)
           .sort((a, b) => a.order - b.order);
-        const order = mealInsertionIndex(mealSlot, active.length);
+        const order = mealSlot
+          ? mealInsertionIndex(mealSlot, active.length)
+          : bestGeographicInsertionIndex(active, activity?.lat, activity?.lon);
         active.forEach((item, index) => {
           item.order = index >= order ? index + 1 : index;
         });
@@ -281,10 +298,26 @@ export function useTripStore() {
       mutate((draft) => {
         const activity = draft.activities.find((item) => item.id === activityId);
         if (!activity) return;
-        activity.dayId = dayId;
-        activity.order =
+
+        const active = draft.activities
+          .filter((item) => item.dayId === dayId && item.included && item.id !== activityId)
+          .sort((a, b) => a.order - b.order);
+        activity.mealSlot = activity.mealSlot ?? inferMealSlot(activity);
+        const insertion =
           order ??
-          draft.activities.filter((item) => item.dayId === dayId && item.included && item.id !== activityId).length;
+          (activity.mealSlot
+            ? mealInsertionIndex(activity.mealSlot, active.length)
+            : bestGeographicInsertionIndex(active, activity.lat, activity.lon));
+
+        active.forEach((item, index) => {
+          item.order = index >= insertion ? index + 1 : index;
+        });
+        activity.dayId = dayId;
+        activity.order = insertion;
+        if (!activity.start && activity.mealSlot) {
+          activity.start = defaultMealStart(activity.mealSlot);
+        }
+
         const place = matchingZonePlace(draft, activity);
         if (place) place.suggestedDayId = dayId;
       }),
@@ -400,6 +433,19 @@ export function useTripStore() {
     [mutate],
   );
 
+  const setZonePlaceForDay = useCallback(
+    (place: ZonePlace, dayId: string, selected: boolean) =>
+      mutate((draft) => {
+        materializeZonePlace(
+          draft,
+          { ...place, suggestedDayId: dayId, selected },
+          dayId,
+          selected,
+        );
+      }),
+    [mutate],
+  );
+
   const updateDocument = useCallback(
     (document: TripState["documents"][number]) =>
       mutate((draft) => {
@@ -462,7 +508,7 @@ export function useTripStore() {
   }, [state]);
 
   const resetToInitial = useCallback(() => {
-    replaceState(cleanState(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState))));
+    replaceState(finalizeProtectedState(withRuntimeEnrichment(structuredClone(initialTrip as TripState))));
     setDirtySince(new Date());
   }, [replaceState]);
 
@@ -487,6 +533,7 @@ export function useTripStore() {
       updateLibraryItem,
       addLibraryToItinerary,
       updateZonePlace,
+      setZonePlaceForDay,
       updateDocument,
       selectRecommendedZonePlaces,
       clearZonePlaces,
@@ -515,6 +562,7 @@ export function useTripStore() {
       updateLibraryItem,
       addLibraryToItinerary,
       updateZonePlace,
+      setZonePlaceForDay,
       updateDocument,
       selectRecommendedZonePlaces,
       clearZonePlaces,
