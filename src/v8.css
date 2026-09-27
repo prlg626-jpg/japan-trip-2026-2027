@@ -21,3 +21,42 @@
 .selectPlaceBig{width:100%;margin-top:10px;border:0;border-radius:12px;padding:10px 12px;font-weight:850;background:#fff;cursor:pointer}.selected .selectPlaceBig{background:#211d3e;color:#fff}.zonePlaceCard .actionRow{margin-top:8px}.zoneActions{margin-top:10px!important}
 .mapMarker.candidate{width:26px!important;height:26px!important;border:3px solid white!important;background:#fff!important;color:#5b5670!important;box-shadow:0 2px 7px rgba(0,0,0,.22)!important;font-size:14px!important}.mapMarker.hotel{background:#a8ddff!important;color:#12263a!important}.mapMarker.category-experience{background:#cfc1ff!important}.mapMarker.category-food,.mapMarker.category-cafe{background:#bfeac5!important}.mapMarker.category-transport{background:#ffd7a0!important}.mapMarker.category-tourism,.mapMarker.category-explore,.mapMarker.category-nature,.mapMarker.category-market{background:#ffcddd!important}.mapMarker.category-shopping,.mapMarker.category-anime,.mapMarker.category-gaming{background:#ffeaa0!important}
 @media(max-width:700px){.zonePlaceList{grid-template-columns:1fr}.zoneHeader{padding:13px}.activityCard{border-radius:16px!important}.routeSummary summary{align-items:flex-start;flex-direction:column}}
+
+
+/* V9: five semantic card families */
+:root{
+  --trip-activity:#f2edff;
+  --trip-shopping:#fff0f4;
+  --trip-culture:#eaf8f4;
+  --trip-food:#fff4df;
+  --trip-travel:#eaf3ff;
+  --trip-activity-accent:#7257cf;
+  --trip-shopping-accent:#b94b6a;
+  --trip-culture-accent:#287e6f;
+  --trip-food-accent:#a66a13;
+  --trip-travel-accent:#3f6fa8;
+}
+.activityCard.visual-activity,.miniActivity.visual-activity,.zonePlaceCard.visual-activity{background:var(--trip-activity)!important;border-left:5px solid var(--trip-activity-accent)!important}
+.activityCard.visual-shopping,.miniActivity.visual-shopping,.zonePlaceCard.visual-shopping{background:var(--trip-shopping)!important;border-left:5px solid var(--trip-shopping-accent)!important}
+.activityCard.visual-culture,.miniActivity.visual-culture,.zonePlaceCard.visual-culture{background:var(--trip-culture)!important;border-left:5px solid var(--trip-culture-accent)!important}
+.activityCard.visual-food,.miniActivity.visual-food,.zonePlaceCard.visual-food{background:var(--trip-food)!important;border-left:5px solid var(--trip-food-accent)!important}
+.activityCard.visual-travel,.miniActivity.visual-travel,.zonePlaceCard.visual-travel{background:var(--trip-travel)!important;border-left:5px solid var(--trip-travel-accent)!important}
+
+.visualLegend{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}
+.visualLegend span{padding:6px 9px;border-radius:999px;font-size:11px;font-weight:850;border:1px solid rgba(32,30,48,.08)}
+.visualLegend .visual-activity{background:var(--trip-activity);color:var(--trip-activity-accent)}
+.visualLegend .visual-shopping{background:var(--trip-shopping);color:var(--trip-shopping-accent)}
+.visualLegend .visual-culture{background:var(--trip-culture);color:var(--trip-culture-accent)}
+.visualLegend .visual-food{background:var(--trip-food);color:var(--trip-food-accent)}
+.visualLegend .visual-travel{background:var(--trip-travel);color:var(--trip-travel-accent)}
+
+.dayLoadSummary{display:inline-block;margin-top:8px;padding:6px 9px;border-radius:999px;background:#fff;border:1px solid rgba(32,30,48,.10);color:#615d6f;font-weight:800}
+.mealBadge{background:#fff1cf!important;color:#8d5b08!important}
+.calculatedBudget{background:#f4f1ff!important;border-color:#ddd5ff!important}
+.calculatedBudget span small{display:block;margin-top:4px;color:#6f6878;font-size:10px;font-weight:700}
+.calculatedBudget input[readonly]{background:#ebe6ff;color:#473d73;cursor:not-allowed;font-weight:850}
+
+.candidateExplorer .zoneHeader{background:linear-gradient(135deg,#fff,#f7f4ff)}
+.candidateExplorer .zoneHeader>span{display:inline-block;margin-bottom:4px;color:#6755ee;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.candidateExplorer .selectPlaceBig{background:#211d3e;color:#fff}
+.candidateExplorer .selectPlaceBig:hover{filter:brightness(1.08)}
