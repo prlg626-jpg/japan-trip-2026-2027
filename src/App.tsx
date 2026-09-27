@@ -50,7 +50,7 @@ import { blankPurchase, PurchaseEditor } from "./components/PurchaseEditor";
 import { ReservationEditor } from "./components/ReservationEditor";
 import { useFirebaseSync } from "./hooks/useFirebaseSync";
 import { useTripStore } from "./hooks/useTripStore";
-import type { Activity, Hotel, LibraryItem, Purchase, Reservation, TripDay, ZonePlace } from "./types";
+import type { Activity, Hotel, Purchase, Reservation, TripDay, ZonePlace } from "./types";
 import { activityEstimate, calculateBudget, formatCOP, formatMoney, hotelExpectedCOP } from "./utils/money";
 import {
   candidateZonePlacesForDay,
@@ -318,7 +318,6 @@ function App() {
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
-  const [libraryFilter, setLibraryFilter] = useState("all");
   const [moreView, setMoreView] = useState<"home" | "documents" | "readiness">("home");
 
   useEffect(() => {
@@ -846,25 +845,18 @@ function App() {
                   <button className="quickPanel" type="button" onClick={() => setMoreView("readiness")}><span>✅ Antes de viajar</span><strong>Checklist automático</strong><small>Documentos, hoteles, actividades y transporte</small></button>
                 </div>
                 <div className="moreGrid">
-                  <section className="panelCard">
+                  <section className="panelCard optionsMovedCard">
                     <div className="sectionTitle">
-                      <h3>Biblioteca / Shoe Lab</h3>
-                      <select value={libraryFilter} onChange={(event) => setLibraryFilter(event.target.value)}>
-                        <option value="all">Todo</option><option value="calzado">Calzado / moda</option><option value="extra">Experiencias extra</option><option value="descartado">Descartado</option>
-                      </select>
+                      <h3>Opciones del itinerario</h3>
                     </div>
-                    <div className="libraryGrid">
-                      {state.library.filter((item) => libraryFilter === "all" || item.category === libraryFilter || item.status === libraryFilter).map((item: LibraryItem) => (
-                        <article className={`libraryCard ${item.status}`} key={item.id}>
-                          <span>{item.category}</span><h4>{item.title}</h4><p>{item.place}</p><small>{item.note}</small>
-                          <div className="actionRow">
-                            <select defaultValue={item.suggestedDate || days[0]?.id} id={`day-${item.id}`}>{days.map((day) => <option value={day.id} key={day.id}>{day.label} · {day.city}</option>)}</select>
-                            <button className="chipButton" type="button" onClick={() => { const select = document.getElementById(`day-${item.id}`) as HTMLSelectElement | null; store.addLibraryToItinerary(item.id, select?.value ?? days[0].id); }}>Añadir</button>
-                            <button className="chipButton" type="button" onClick={() => store.updateLibraryItem({ ...item, status: "descartado" })}>Descartar</button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
+                    <p>
+                      Las actividades opcionales ya no se administran desde una biblioteca separada.
+                      Ahora aparecen directamente debajo de cada día en <strong>También encaja aquí</strong>,
+                      según zona y cercanía.
+                    </p>
+                    <button className="primaryAction" type="button" onClick={() => setTab("trip")}>
+                      Ver opciones por día
+                    </button>
                   </section>
                   <section className="panelCard">
                     <div className="sectionTitle"><h3>Inspiración</h3></div>
