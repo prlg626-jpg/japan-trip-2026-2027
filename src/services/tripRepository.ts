@@ -355,7 +355,9 @@ export function subscribeTripState(
     }
 
     const settings = stripRevision(settingsRaw as Revisioned<Partial<TripState>>);
-    const budget = stripRevision(budgetRaw as Revisioned<TripState["budget"]>);
+    const budget = stripRevision(
+      budgetRaw as unknown as Revisioned<TripState["budget"]>,
+    );
     const blackBox = manifest.blackBoxUpdatedAt && activityBlackBoxRaw
       ? stripRevision(activityBlackBoxRaw)
       : undefined;
