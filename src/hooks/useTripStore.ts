@@ -18,6 +18,13 @@ import { enrichTokyoJan8 } from "../utils/tokyoJan8Enrichment";
 import { applyBookedHotels2026 } from "../utils/bookedHotels2026";
 import { applyCurrentItinerary2027 } from "../utils/currentItinerary2027";
 import { syncMoneyPage } from "../utils/money";
+import {
+  captureActivityBlackBox,
+  readLocalActivityBlackBox,
+  restoreActivityBlackBox,
+  writeLocalActivityBlackBox,
+} from "../utils/activityBlackBox";
+import { defaultMealStart, inferMealSlot, inferZoneMealSlot, mealInsertionIndex } from "../utils/mealSlots";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -39,11 +46,20 @@ function withRuntimeEnrichment(state: TripState): TripState {
 function loadInitialState(): TripState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return withRuntimeEnrichment(migrateStoredState(JSON.parse(saved) as TripState));
+    if (saved) {
+      const stored = migrateStoredState(JSON.parse(saved) as TripState);
+      const enriched = withRuntimeEnrichment(stored);
+      const blackBox = stored.activityBlackBox ?? readLocalActivityBlackBox();
+      const restored = restoreActivityBlackBox(enriched, blackBox);
+      restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
+      return cleanState(restored);
+    }
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  return withRuntimeEnrichment(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState)));
+  const fresh = withRuntimeEnrichment(rebalanceOsakaYearEnd(structuredClone(initialTrip as TripState)));
+  fresh.activityBlackBox = captureActivityBlackBox(fresh);
+  return fresh;
 }
 
 function uid(prefix: string) {
@@ -83,11 +99,21 @@ function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string,
     return;
   }
 
-  const nextOrder = draft.activities.filter((item) => item.dayId === dayId && item.included).length;
+  const active = draft.activities
+    .filter((item) => item.dayId === dayId && item.included && item.id !== activity?.id)
+    .sort((a, b) => a.order - b.order);
+  const mealSlot = inferZoneMealSlot(place);
+  const nextOrder = mealInsertionIndex(mealSlot, active.length);
+  active.forEach((item, index) => {
+    item.order = index >= nextOrder ? index + 1 : index;
+  });
+
   if (activity) {
     activity.dayId = dayId;
     activity.included = true;
     activity.order = nextOrder;
+    activity.mealSlot = activity.mealSlot ?? mealSlot;
+    if (!activity.start && mealSlot) activity.start = defaultMealStart(mealSlot);
     activity.zoneId = place.zoneId;
     activity.place = activity.place || place.address || place.title;
     activity.lat = activity.lat ?? place.lat;
@@ -99,7 +125,7 @@ function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string,
     id: `zone-activity-${place.id}`,
     dayId,
     order: nextOrder,
-    start: "",
+    start: defaultMealStart(mealSlot),
     end: "",
     durationMinutes: place.estimatedDurationMinutes,
     title: place.title,
@@ -133,6 +159,7 @@ function materializeZonePlace(draft: TripState, place: ZonePlace, dayId: string,
     reservationRequired: place.reservationRequired,
     bookingLabel: place.reservationRequired ? "Ver / reservar" : "",
     routeStrategy: "ordered",
+    mealSlot,
   });
   draft.activities.push(activity);
 }
@@ -143,10 +170,14 @@ export function useTripStore() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    writeLocalActivityBlackBox(state);
   }, [state]);
 
   const replaceState = useCallback((next: TripState) => {
-    setState(withRuntimeEnrichment(next));
+    const enriched = withRuntimeEnrichment(next);
+    const restored = restoreActivityBlackBox(enriched, next.activityBlackBox);
+    restored.activityBlackBox = captureActivityBlackBox(restored);
+    setState(cleanState(restored));
     setDirtySince(null);
   }, []);
 
@@ -155,7 +186,9 @@ export function useTripStore() {
       const draft = structuredClone(current);
       recipe(draft);
       setDirtySince(new Date());
-      return cleanState(draft);
+      const cleaned = cleanState(draft);
+      cleaned.activityBlackBox = captureActivityBlackBox(cleaned);
+      return cleaned;
     });
   }, []);
 
@@ -166,10 +199,17 @@ export function useTripStore() {
         if (!current) return;
         const inclusionChanged = current.included !== activity.included;
         const next = { ...activity };
+        next.mealSlot = next.mealSlot ?? inferMealSlot(next);
         if (inclusionChanged && next.included) {
-          next.order = draft.activities.filter(
-            (item) => item.dayId === next.dayId && item.included && item.id !== next.id,
-          ).length;
+          const active = draft.activities
+            .filter((item) => item.dayId === next.dayId && item.included && item.id !== next.id)
+            .sort((a, b) => a.order - b.order);
+          const insertion = mealInsertionIndex(next.mealSlot, active.length);
+          active.forEach((item, index) => {
+            item.order = index >= insertion ? index + 1 : index;
+          });
+          next.order = insertion;
+          if (!next.start && next.mealSlot) next.start = defaultMealStart(next.mealSlot);
         }
         draft.activities = draft.activities.map((item) => (item.id === activity.id ? next : item));
         const place = matchingZonePlace(draft, next);
@@ -181,12 +221,21 @@ export function useTripStore() {
   const addActivity = useCallback(
     (dayId: string, activity?: Partial<Activity>) =>
       mutate((draft) => {
-        const order = draft.activities.filter((item) => item.dayId === dayId && item.included).length;
+        const mealSlot = inferMealSlot(activity ?? {});
+        const active = draft.activities
+          .filter((item) => item.dayId === dayId && item.included)
+          .sort((a, b) => a.order - b.order);
+        const order = mealInsertionIndex(mealSlot, active.length);
+        active.forEach((item, index) => {
+          item.order = index >= order ? index + 1 : index;
+        });
         draft.activities.push(normalizeActivityV7({
           ...activity,
           id: activity?.id ?? uid("act"),
           dayId,
           order,
+          start: activity?.start || defaultMealStart(mealSlot),
+          mealSlot,
           title: activity?.title ?? "Nueva actividad",
         }));
       }),
