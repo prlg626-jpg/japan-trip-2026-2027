@@ -92,6 +92,22 @@ function isActivityBudgetItem(activity: Activity): boolean {
   return true;
 }
 
+export function purchasedHotelBudget(state: TripState) {
+  const rows = state.purchases.filter((purchase) => {
+    const category = (purchase.category || "").toLowerCase();
+    return (
+      category.includes("hotel") &&
+      (purchase.status === "Pagado" || purchase.status === "Reservado") &&
+      Number(purchase.amountCOP || 0) > 0
+    );
+  });
+
+  return {
+    rows,
+    totalCOP: rows.reduce((sum, purchase) => sum + Number(purchase.amountCOP || 0), 0),
+  };
+}
+
 export function selectedActivityBudget(state: TripState) {
   const selected = state.activities.filter((activity) => activity.included && isActivityBudgetItem(activity));
   const purchasedActivityIds = new Set(
@@ -128,17 +144,31 @@ export function syncMoneyPage(state: TripState): TripState {
   );
 
   const activities = selectedActivityBudget(copy);
+  const hotels = purchasedHotelBudget(copy);
+
   copy.budget.categories = copy.budget.categories.map((category) => {
-    const isActivities =
-      category.id.toLowerCase().includes("activ") ||
-      category.name.toLowerCase().includes("activ");
-    return isActivities
-      ? {
-          ...category,
-          name: "Actividades, comida y compras seleccionadas (calculado)",
-          limitCOP: Math.round(activities.estimatedTotal),
-        }
-      : category;
+    const id = category.id.toLowerCase();
+    const name = category.name.toLowerCase();
+    const isActivities = id.includes("activ") || name.includes("activ");
+    const isHotels = id.includes("hotel") || name.includes("hotel");
+
+    if (isActivities) {
+      return {
+        ...category,
+        name: "Actividades, comida y compras seleccionadas (calculado)",
+        limitCOP: Math.round(activities.estimatedTotal),
+      };
+    }
+
+    if (isHotels) {
+      return {
+        ...category,
+        name: "Hoteles comprados (calculado)",
+        limitCOP: Math.round(hotels.totalCOP),
+      };
+    }
+
+    return category;
   });
 
   return copy;
