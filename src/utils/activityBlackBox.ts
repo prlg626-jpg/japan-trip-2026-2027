@@ -1,13 +1,4 @@
-import type { Activity, TripState, ZonePlace } from "../types";
-
-export interface ActivityBlackBox {
-  version: 1;
-  updatedAt: string;
-  activityDecisions: Record<string, { included: boolean; dayId: string; order: number }>;
-  protectedActivities: Activity[];
-  zoneDecisions: Record<string, { selected: boolean; suggestedDayId: string | null; order: number }>;
-  protectedZonePlaces: ZonePlace[];
-}
+import type { ActivityBlackBox, TripState } from "../types";
 
 const LOCAL_BLACK_BOX_KEY = "japan-trip-2026-2027-activity-blackbox-v1";
 
