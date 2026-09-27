@@ -8,7 +8,12 @@ import {
   signInWithGoogle,
   signOutGoogle,
 } from "../services/firebase";
-import { seedTripIfNeeded, subscribeTripState, writeTripState } from "../services/tripRepository";
+import {
+  saveSessionRecoverySnapshot,
+  seedTripIfNeeded,
+  subscribeTripState,
+  writeTripState,
+} from "../services/tripRepository";
 
 export type SyncStatus = "local" | "online" | "offline" | "syncing" | "verified" | "error";
 
@@ -50,6 +55,7 @@ export function useFirebaseSync(state: TripState, replaceState: (state: TripStat
       .then(async (firebase) => {
         if (!firebase || cancelled) return;
         await seedTripIfNeeded(firebase.db, user, state);
+        await saveSessionRecoverySnapshot(firebase.db, user, state);
         unsubscribe = subscribeTripState(firebase.db, state, (remoteState, pendingWrites) => {
           const serialized = JSON.stringify(remoteState);
           lastRemote.current = serialized;
