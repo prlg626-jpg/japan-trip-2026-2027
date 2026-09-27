@@ -144,6 +144,24 @@ function StatCard({ label, value, tone }: { label: string; value: string; tone?:
   );
 }
 
+function reservationDurationMinutes(activity?: Activity) {
+  if (!activity) return 0;
+  return (
+    activity.estimatedDurationMinutes ??
+    activity.recommendedVisitMinutes ??
+    activity.durationMinutes ??
+    0
+  );
+}
+
+function compactDuration(minutes: number) {
+  if (!minutes) return "";
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `≈ ${rest} min`;
+  return rest ? `≈ ${hours} h ${rest} min` : `≈ ${hours} h`;
+}
+
 const visualGroupLabels: Record<VisualGroup, string> = {
   activity: "Actividad",
   shopping: "Compras",
@@ -345,6 +363,25 @@ function App() {
   const dayDocuments = selectedDay ? state.documents.filter((doc) => doc.tripSegments.includes(selectedDay.id)) : [];
   const budget = useMemo(() => calculateBudget(state), [state]);
   const bookableReservations = useMemo(() => selectedBookableReservations(state), [state]);
+  const reservationGroups = useMemo(() => {
+    const grouped = new Map<string, Reservation[]>();
+    bookableReservations.forEach((reservation) => {
+      const list = grouped.get(reservation.travelDate) ?? [];
+      list.push(reservation);
+      grouped.set(reservation.travelDate, list);
+    });
+
+    return [...grouped.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([date, reservations]) => {
+        const day = state.days.find((item) => item.id === date || item.date === date);
+        const minutes = reservations.reduce((sum, reservation) => {
+          const activity = state.activities.find((item) => item.id === reservation.activityId);
+          return sum + reservationDurationMinutes(activity);
+        }, 0);
+        return { date, day, reservations, minutes };
+      });
+  }, [bookableReservations, state.activities, state.days]);
   const allMapActivities = state.activities.filter((activity) => activity.included);
 
   const sensors = useSensors(
@@ -806,32 +843,73 @@ function App() {
               ))}
             </div>
 
-            <div className="sectionTitle">
-              <h3>Qué ya se puede reservar</h3>
+            <div className="sectionTitle reservationSectionTitle">
+              <div>
+                <h3>Qué tengo que reservar</h3>
+                <p>Solo aparecen actividades que siguen seleccionadas en Viaje.</p>
+              </div>
             </div>
-            <div className="reservationGrid">
-              {bookableReservations.map((reservation) => (
-                <article className="reservationCard" key={reservation.id}>
-                  <span>{reservation.travelDate}</span>
-                  <h4>{reservation.name}</h4>
-                  <p>{reservation.currentStatus} · abre: {reservation.opens}</p>
-                  <strong>
-                    {reservation.estimatedPriceCOP > 0
-                      ? formatCOP(reservation.estimatedPriceCOP)
-                      : "Precio por confirmar"}
-                  </strong>
-                  <div className="actionRow">
-                    {reservation.link ? (
-                      <a className="chipButton" href={reservation.link} target="_blank" rel="noreferrer">
-                        Abrir
-                      </a>
-                    ) : null}
-                    <button className="chipButton" type="button" onClick={() => setEditingReservation(reservation)}>
-                      Editar
-                    </button>
+            <div className="reservationDayList">
+              {reservationGroups.length ? reservationGroups.map((group) => (
+                <section className="reservationDayGroup" key={group.date}>
+                  <header className="reservationDayHeader">
+                    <div>
+                      <span>{group.day?.label ?? group.date}</span>
+                      <strong>{group.day?.city ?? ""}</strong>
+                    </div>
+                    <div className="reservationLoad">
+                      <b>{group.reservations.length} {group.reservations.length === 1 ? "reserva" : "reservas"}</b>
+                      {group.minutes > 0 ? <small>{compactDuration(group.minutes)} de actividades</small> : null}
+                    </div>
+                  </header>
+                  <div className="reservationDayItems">
+                    {group.reservations.map((reservation, index) => {
+                      const activity = state.activities.find((item) => item.id === reservation.activityId);
+                      const duration = reservationDurationMinutes(activity);
+                      return (
+                        <article className="reservationListCard" key={reservation.id}>
+                          <div className="reservationOrdinal">{index + 1}</div>
+                          <div className="reservationListMain">
+                            <div className="reservationTitleRow">
+                              <div>
+                                <h4>{reservation.name}</h4>
+                                {activity?.description ? <p>{activity.description}</p> : null}
+                              </div>
+                              <strong>
+                                {reservation.estimatedPriceCOP > 0
+                                  ? formatCOP(reservation.estimatedPriceCOP)
+                                  : "Precio por confirmar"}
+                              </strong>
+                            </div>
+                            <div className="reservationMeta">
+                              <span>{reservation.currentStatus}</span>
+                              {reservation.opens ? <span>📅 {reservation.opens}</span> : null}
+                              {duration > 0 ? <span>⏱ {compactDuration(duration)}</span> : null}
+                            </div>
+                            {reservation.reminderNotes ? (
+                              <small className="reservationNote">{reservation.reminderNotes}</small>
+                            ) : null}
+                            <div className="actionRow">
+                              {reservation.link ? (
+                                <a className="chipButton" href={reservation.link} target="_blank" rel="noreferrer">
+                                  Abrir reserva
+                                </a>
+                              ) : null}
+                              <button className="chipButton" type="button" onClick={() => setEditingReservation(reservation)}>
+                                Editar
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
-                </article>
-              ))}
+                </section>
+              )) : (
+                <div className="emptyReservationState">
+                  No hay actividades seleccionadas pendientes de reservar.
+                </div>
+              )}
             </div>
           </section>
         ) : null}
