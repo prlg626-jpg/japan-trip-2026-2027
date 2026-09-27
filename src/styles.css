@@ -1153,3 +1153,5 @@ a {
 .reservationNote{color:var(--muted);font-size:11px;line-height:1.45}
 .emptyReservationState{padding:18px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center}
 @media(max-width:620px){.reservationDayHeader{align-items:flex-start}.reservationTitleRow{display:grid}.reservationTitleRow>strong{text-align:left}.reservationListCard{grid-template-columns:30px minmax(0,1fr);padding:12px}}
+
+.reservationLoad em{justify-self:end;padding:4px 7px;border-radius:999px;background:#fff0db;color:#965b00;font-size:9px;font-style:normal;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
