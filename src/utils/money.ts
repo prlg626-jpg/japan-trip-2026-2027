@@ -27,7 +27,13 @@ export function estimateFromOriginal(cost: CostItem, state: TripState): number {
 }
 
 export function activityEstimate(activity: Activity, state: TripState): number {
-  if (activity.estimatedCostCOP != null && Number(activity.estimatedCostCOP) > 0) return Number(activity.estimatedCostCOP);
+  if (activity.estimatedCostCOP != null && Number(activity.estimatedCostCOP) > 0) {
+    return Number(activity.estimatedCostCOP);
+  }
+  if (activity.totalForTwoCOP != null && Number(activity.totalForTwoCOP) > 0) {
+    return Number(activity.totalForTwoCOP);
+  }
+
   const legacyCostAliases: Record<string, string> = {
     "v7-28-chopsticks": "d26-chopsticks",
     "v7-28-matcha": "d26-matcha",
@@ -37,7 +43,27 @@ export function activityEstimate(activity: Activity, state: TripState): number {
   };
   const costId = activity.costItemId || legacyCostAliases[activity.id];
   const cost = costId ? state.costs.find((item) => item.id === costId) : null;
-  return cost ? estimateFromOriginal(cost, state) : 0;
+  if (cost) return estimateFromOriginal(cost, state);
+
+  // Many hotspot cards carry the verified native price directly rather than a
+  // separate cost row. Use it as the final fallback so activating/deselecting
+  // those cards really changes the live budget.
+  if (activity.priceOriginal?.unit) {
+    const quantity =
+      activity.priceScope === "per_person"
+        ? Math.max(1, state.trip.travelers || 2)
+        : Math.max(1, Number(activity.priceOriginal.quantity || 1));
+    const native = Number(activity.priceOriginal.unit) * quantity;
+    if (activity.priceOriginal.currency === "COP") return native;
+    if (activity.priceOriginal.currency === "USD") {
+      return native * Number(state.settings.fx.USD || 0);
+    }
+    if (activity.priceOriginal.currency === "JPY") {
+      return native * Number(state.settings.fx.JPY || 0);
+    }
+  }
+
+  return 0;
 }
 
 export function hotelExpectedCOP(hotel: Hotel, state: TripState): number {
