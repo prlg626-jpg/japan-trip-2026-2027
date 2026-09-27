@@ -11,6 +11,7 @@ export type DisplayMode = "timed" | "flex-list" | "anchor" | "hotel" | "transpor
 export type PriceScope = "per_person" | "for_two" | "per_item" | "free" | "variable" | "included" | "unknown";
 export type PriorityRank = "essential" | "recommended" | "nearby" | "niche";
 export type DocumentStatus = "Pendiente" | "En trámite" | "Aprobado" | "Completado" | "No aplica" | "Vencido";
+export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner";
 
 export interface MoneyOriginal {
   currency: "COP" | "USD" | "JPY" | string;
@@ -109,6 +110,7 @@ export interface Activity {
   bookingLabel: string;
   mustKeep: boolean;
   routeStrategy: "manual" | "ordered" | "flexible";
+  mealSlot?: MealSlot | null;
 }
 
 export interface Hotel {
@@ -266,6 +268,16 @@ export interface ZonePlace {
   selected: boolean;
   suggestedDayId: string | null;
   order: number;
+  mealSlot?: MealSlot | null;
+}
+
+export interface ActivityBlackBox {
+  version: 1;
+  updatedAt: string;
+  activityDecisions: Record<string, { included: boolean; dayId: string; order: number }>;
+  protectedActivities: Activity[];
+  zoneDecisions: Record<string, { selected: boolean; suggestedDayId: string | null; order: number }>;
+  protectedZonePlaces: ZonePlace[];
 }
 
 export interface RouteSegment {
@@ -355,6 +367,7 @@ export interface TripState {
   decisions: string[];
   booked: Record<string, boolean>;
   notes: Record<string, string>;
+  activityBlackBox?: ActivityBlackBox;
   migrationReport: {
     baseDaysBeforeRuntimePatches: number;
     finalDays: number;
