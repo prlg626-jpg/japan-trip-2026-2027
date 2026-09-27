@@ -31,7 +31,7 @@ import {
   Library,
   LogIn,
   LogOut,
-  Map,
+  Map as MapIcon,
   MapPin,
   MoreHorizontal,
   Plus,
@@ -81,7 +81,7 @@ type Tab = "today" | "trip" | "map" | "money" | "more";
 const navItems: Array<{ id: Tab; label: string; icon: typeof Home }> = [
   { id: "today", label: "Hoy", icon: Home },
   { id: "trip", label: "Viaje", icon: CalendarDays },
-  { id: "map", label: "Mapa", icon: Map },
+  { id: "map", label: "Mapa", icon: MapIcon },
   { id: "money", label: "Dinero", icon: Coins },
   { id: "more", label: "Más", icon: MoreHorizontal },
 ];
