@@ -58,8 +58,11 @@ export function purchaseCommitted(purchase: Purchase): boolean {
 function isActivityBudgetItem(activity: Activity): boolean {
   const category = (activity.category || "").toLowerCase();
   const kind = (activity.kind || "").toLowerCase();
-  if (["transport", "flight", "food", "restaurant", "shopping", "hotel", "rest"].includes(category)) return false;
-  if (["transport", "flight", "food", "restaurant", "shopping", "hotel", "rest"].includes(kind)) return false;
+  // Hotels and long-distance/urban transport are tracked elsewhere. Everything
+  // else with a real price follows the live itinerary selection, including food
+  // and shopping experiences such as JINS.
+  if (["transport", "flight", "hotel", "rest"].includes(category)) return false;
+  if (["transport", "flight", "hotel", "rest", "transfer"].includes(kind)) return false;
   return true;
 }
 
@@ -91,41 +94,25 @@ export function selectedActivityBudget(state: TripState) {
 
 export function syncMoneyPage(state: TripState): TripState {
   const copy = structuredClone(state);
-  const summaryId = "summary-selected-activities";
-  copy.purchases = copy.purchases.filter((purchase) => purchase.id !== summaryId);
+
+  // Remove the legacy synthetic purchase. The money screen is now fully
+  // derived from the current itinerary and never persists a fake transaction.
+  copy.purchases = copy.purchases.filter(
+    (purchase) => purchase.id !== "summary-selected-activities",
+  );
 
   const activities = selectedActivityBudget(copy);
-
-  // The activity line is not a discretionary ceiling anymore: it mirrors the
-  // actual priced activities that are currently active in the itinerary.
   copy.budget.categories = copy.budget.categories.map((category) => {
-    const isActivities = category.id.toLowerCase().includes("activ") || category.name.toLowerCase().includes("activ");
+    const isActivities =
+      category.id.toLowerCase().includes("activ") ||
+      category.name.toLowerCase().includes("activ");
     return isActivities
-      ? { ...category, name: "Actividades seleccionadas (calculado)", limitCOP: Math.round(activities.estimatedTotal) }
+      ? {
+          ...category,
+          name: "Actividades, comida y compras seleccionadas (calculado)",
+          limitCOP: Math.round(activities.estimatedTotal),
+        }
       : category;
-  });
-
-  const datedRows = activities.rows
-    .sort((a, b) => a.activity.dayId.localeCompare(b.activity.dayId) || a.activity.order - b.activity.order);
-  const preview = datedRows.slice(0, 8).map((row) => row.activity.title).join(" · ");
-  const extra = Math.max(0, datedRows.length - 8);
-
-  copy.purchases.push({
-    id: summaryId,
-    name: `Actividades seleccionadas · ${activities.pricedCount} con precio`,
-    category: "Actividades",
-    activityId: null,
-    city: "Japón",
-    provider: "Calculado desde el itinerario activo",
-    originalAmount: activities.estimatedTotal,
-    currency: "COP",
-    amountCOP: activities.estimatedTotal,
-    date: "Plan actual",
-    confirmationNumber: "",
-    status: "Por reservar",
-    notes: `${activities.selectedCount} actividades activas en los días; ${activities.pricedCount} tienen precio cargado. Falta por reservar/pagar de esas actividades: ${formatCOP(activities.pendingTotal)}. ${preview}${extra ? ` · +${extra} más` : ""}`,
-    link: "",
-    receipt: { url: "", driveUrl: "", fileName: "", storagePath: "" },
   });
 
   return copy;
