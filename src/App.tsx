@@ -103,12 +103,14 @@ function SyncPill({
   const label = !configured
     ? "Local"
     : status === "syncing"
-      ? "Sincronizando"
-      : status === "online"
-        ? "Online"
-        : status === "offline"
-          ? "Sin conexión"
-          : "Revisar sync";
+      ? "Guardando…"
+      : status === "verified"
+        ? "Nube verificada"
+        : status === "online"
+          ? "Online"
+          : status === "offline"
+            ? "Sin conexión"
+            : "Revisar sync";
   return (
     <span className={`syncPill ${status}`}>
       <Icon size={15} />
