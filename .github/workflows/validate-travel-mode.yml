@@ -1,0 +1,32 @@
+name: Validate travel mode prototype
+
+on:
+  push:
+    branches: [travel-mode-prototype]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate data
+        run: pnpm test:data
+
+      - name: Typecheck and build
+        run: pnpm build
