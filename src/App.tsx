@@ -715,14 +715,20 @@ function App() {
                 </div>
                 <div className="categoryList">
                   {state.budget.categories.map((category) => {
-                    const calculated =
-                      category.id.toLowerCase().includes("activ") ||
-                      category.name.toLowerCase().includes("activ");
+                    const id = category.id.toLowerCase();
+                    const name = category.name.toLowerCase();
+                    const isActivities = id.includes("activ") || name.includes("activ");
+                    const isHotels = id.includes("hotel") || name.includes("hotel");
+                    const calculated = isActivities || isHotels;
                     return (
                       <label key={category.id} className={calculated ? "calculatedBudget" : ""}>
                         <span>
                           {category.name}
-                          {calculated ? <small>Se actualiza con lo seleccionado en Viaje</small> : null}
+                          {isActivities ? (
+                            <small>Se actualiza con lo seleccionado en Viaje</small>
+                          ) : isHotels ? (
+                            <small>Se actualiza con los hoteles Pagados/Reservados en Compras y reservas</small>
+                          ) : null}
                         </span>
                         <input
                           type="number"
