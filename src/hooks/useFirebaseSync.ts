@@ -10,7 +10,7 @@ import {
 } from "../services/firebase";
 import { seedTripIfNeeded, subscribeTripState, writeTripState } from "../services/tripRepository";
 
-export type SyncStatus = "local" | "online" | "offline" | "syncing" | "error";
+export type SyncStatus = "local" | "online" | "offline" | "syncing" | "verified" | "error";
 
 export function useFirebaseSync(state: TripState, replaceState: (state: TripState) => void) {
   const [user, setUser] = useState<User | null>(null);
@@ -18,6 +18,8 @@ export function useFirebaseSync(state: TripState, replaceState: (state: TripStat
   const [message, setMessage] = useState(firebaseConfigured() ? "" : "Firebase no configurado");
   const lastRemote = useRef("");
   const ready = useRef(false);
+  const saveQueue = useRef(Promise.resolve());
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -73,24 +75,26 @@ export function useFirebaseSync(state: TripState, replaceState: (state: TripStat
     if (!user || !firebaseConfigured() || !ready.current) return;
     const serialized = JSON.stringify(state);
     if (serialized === lastRemote.current) return;
+
     setStatus("syncing");
-    const timer = window.setTimeout(() => {
-      getFirebaseServices()
-        .then((firebase) => {
-          if (!firebase) return;
-          return writeTripState(firebase.db, state);
-        })
-        .then(() => {
-          lastRemote.current = serialized;
-          setStatus(navigator.onLine ? "online" : "offline");
-        })
-        .catch((error) => {
-          console.error(error);
-          setStatus("error");
-          setMessage(error instanceof Error ? error.message : "Error guardando en Firestore");
-        });
-    }, 900);
-    return () => window.clearTimeout(timer);
+    setMessage("Guardando en Firestore…");
+
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const firebase = await getFirebaseServices();
+        if (!firebase) throw new Error("Firebase no está disponible.");
+        const receipt = await writeTripState(firebase.db, state);
+        lastRemote.current = serialized;
+        setVerifiedAt(receipt.verifiedAt);
+        setStatus("verified");
+        setMessage("Guardado en nube ✓");
+      })
+      .catch((error) => {
+        console.error(error);
+        setStatus("error");
+        setMessage(error instanceof Error ? error.message : "Error verificando el guardado en Firestore");
+      });
   }, [state, user]);
 
   return {
@@ -98,6 +102,7 @@ export function useFirebaseSync(state: TripState, replaceState: (state: TripStat
     user,
     status,
     message,
+    verifiedAt,
     signIn: signInWithGoogle,
     signOut: signOutGoogle,
   };
