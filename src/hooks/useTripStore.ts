@@ -33,6 +33,10 @@ import {
   applyCurrentActivityPricing,
   removePlaceholderNyeDinnerV1,
 } from "../utils/pricingCleanup2026";
+import {
+  applyDec26RouteReviewV1,
+  applyReservationPlanningCopy,
+} from "../utils/reservationPlanning2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -54,10 +58,12 @@ function withRuntimeEnrichment(state: TripState): TripState {
 function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["activityBlackBox"] | null) {
   const balanceMigration = applyAuthorizedItineraryBalanceV1(state);
   const dinnerCleanup = removePlaceholderNyeDinnerV1(balanceMigration.state);
-  const priced = applyCurrentActivityPricing(dinnerCleanup.state);
-  const cleaned = cleanState(priced);
+  const dec26Route = applyDec26RouteReviewV1(dinnerCleanup.state);
+  const priced = applyCurrentActivityPricing(dec26Route.state);
+  const clarified = applyReservationPlanningCopy(priced);
+  const cleaned = cleanState(clarified);
   cleaned.activityBlackBox =
-    balanceMigration.migrated || dinnerCleanup.migrated
+    balanceMigration.migrated || dinnerCleanup.migrated || dec26Route.migrated
       ? captureActivityBlackBox(cleaned)
       : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
   return cleaned;
