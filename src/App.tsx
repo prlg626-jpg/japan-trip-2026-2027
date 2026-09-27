@@ -146,12 +146,20 @@ function StatCard({ label, value, tone }: { label: string; value: string; tone?:
 
 function reservationDurationMinutes(activity?: Activity) {
   if (!activity) return 0;
-  return (
+  const known =
     activity.estimatedDurationMinutes ??
     activity.recommendedVisitMinutes ??
-    activity.durationMinutes ??
-    0
-  );
+    activity.durationMinutes;
+  if (known && known > 0) return known;
+
+  if (/^\d{2}:\d{2}$/.test(activity.start) && /^\d{2}:\d{2}$/.test(activity.end)) {
+    const [startHour, startMinute] = activity.start.split(":").map(Number);
+    const [endHour, endMinute] = activity.end.split(":").map(Number);
+    const minutes = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    if (minutes > 0) return minutes;
+  }
+
+  return 0;
 }
 
 function compactDuration(minutes: number) {
@@ -860,6 +868,9 @@ function App() {
                     <div className="reservationLoad">
                       <b>{group.reservations.length} {group.reservations.length === 1 ? "reserva" : "reservas"}</b>
                       {group.minutes > 0 ? <small>{compactDuration(group.minutes)} de actividades</small> : null}
+                      {group.reservations.length >= 3 || group.minutes >= 360 ? (
+                        <em>Carga alta</em>
+                      ) : null}
                     </div>
                   </header>
                   <div className="reservationDayItems">
