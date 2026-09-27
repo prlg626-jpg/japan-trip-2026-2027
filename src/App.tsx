@@ -53,6 +53,14 @@ import { useTripStore } from "./hooks/useTripStore";
 import type { Activity, Hotel, LibraryItem, Purchase, Reservation, TripDay, ZonePlace } from "./types";
 import { activityEstimate, calculateBudget, formatCOP, formatMoney, hotelExpectedCOP } from "./utils/money";
 import {
+  candidateZonePlacesForDay,
+  estimatedDayMinutes,
+  visualGroupForActivity,
+  type VisualGroup,
+} from "./utils/itineraryIntelligence";
+import { mealSlotLabel } from "./utils/mealSlots";
+import { selectedBookableReservations } from "./utils/reservations";
+import {
   activeActivitiesForDay,
   activitiesForDay,
   cityClass,
@@ -136,6 +144,22 @@ function StatCard({ label, value, tone }: { label: string; value: string; tone?:
   );
 }
 
+const visualGroupLabels: Record<VisualGroup, string> = {
+  activity: "Actividad",
+  shopping: "Compras",
+  culture: "Cultura / paseo",
+  food: "Comida",
+  travel: "Viaje",
+};
+
+function dayLoadLabel(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (!hours) return `≈ ${remainder} min`;
+  if (!remainder) return `≈ ${hours} h`;
+  return `≈ ${hours} h ${remainder} min`;
+}
+
 function SortableActivityCard({
   activity,
   day,
@@ -174,14 +198,14 @@ function SortableActivityCard({
     <article
       ref={setNodeRef}
       style={style}
-      className={`activityCard category-${activity.category} ${activity.included ? "" : "inactive"} ${isDragging ? "dragging" : ""}`}
+      className={`activityCard category-${activity.category} visual-${visualGroupForActivity(activity)} ${activity.included ? "" : "inactive"} ${isDragging ? "dragging" : ""}`}
     >
       <button className="dragHandle" type="button" {...attributes} {...listeners} aria-label="Arrastrar">
         <GripVertical size={18} />
       </button>
       {activity.included && ordinal ? <span className="activityOrdinal">{ordinal}</span> : null}
       <div className="activityTime">
-        <strong>{activity.displayMode === "flex-list" ? "Flexible" : (activity.start || "--:--")}</strong>
+        <strong>{activity.start || (activity.displayMode === "flex-list" ? "Flexible" : "--:--")}</strong>
         <span>{activity.end || ""}</span>
       </div>
       <div className="activityMain">
@@ -196,7 +220,8 @@ function SortableActivityCard({
         </div>
         <div className="badgeRow">
           <span className={`statusBadge ${activity.status}`}>{statusLabel(activity.status)}</span>
-          <span>{activity.kind}</span>
+          <span>{visualGroupLabels[visualGroupForActivity(activity)]}</span>
+          {activity.mealSlot ? <span className="mealBadge">{mealSlotLabel(activity.mealSlot)}</span> : null}
           {activity.priority ? <span className="warm">prioridad</span> : null}
           {activity.fixed ? <span className="cool">fija</span> : null}
           {estimate > 0 ? <span>{formatCOP(estimate)}</span> : null}
@@ -262,7 +287,7 @@ function ActivityCard({
 }) {
   const mapsUrl = activity.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.place)}`;
   return (
-    <article className={`miniActivity ${activity.included ? "" : "inactive"}`}>
+    <article className={`miniActivity visual-${visualGroupForActivity(activity)} ${activity.included ? "" : "inactive"}`}>
       <div>
         <time>{activity.start || "--:--"}</time>
         <h4>{activity.title}</h4>
@@ -306,15 +331,21 @@ function App() {
   const selectedActivities = selectedDay ? activitiesForDay(state, selectedDay.id) : [];
   const selectedActiveActivities = selectedActivities.filter((activity) => activity.included);
   const selectedHotel = selectedDay ? getHotelForDay(state, selectedDay.id) : null;
-  const selectedZones = selectedDay ? state.zones.filter((zone) => (selectedDay.zoneIds ?? []).includes(zone.id)) : [];
-  const selectedZonePlacesRaw = selectedDay ? state.zonePlaces.filter((place) => (selectedDay.zoneIds ?? []).includes(place.zoneId) && (!place.suggestedDayId || place.suggestedDayId === selectedDay.id)) : [];
-  const selectedActivityTitles = new Set(selectedActivities.map((activity) => activity.title.toLowerCase()));
-  const selectedZonePlaces = selectedZonePlacesRaw.filter((place) => !selectedActivityTitles.has(place.title.toLowerCase()));
-  const selectedMapActivities = selectedActiveActivities.filter((activity) => activity.displayMode !== "flex-list");
-  const dynamicRoute = selectedDay ? buildDayRoute(selectedDay.id, selectedHotel, selectedActivities, selectedZonePlaces, state.routeSegments) : { points: [], segments: [] };
+  const candidatePlaces = useMemo(
+    () => (selectedDay ? candidateZonePlacesForDay(state, selectedDay.id) : []),
+    [state, selectedDay],
+  );
+  const candidateZoneIds = new Set(candidatePlaces.map((place) => place.zoneId));
+  const candidateZones = state.zones.filter((zone) => candidateZoneIds.has(zone.id));
+  const selectedMapActivities = selectedActiveActivities;
+  const dynamicRoute = selectedDay
+    ? buildDayRoute(selectedDay.id, selectedHotel, selectedActiveActivities, [], state.routeSegments)
+    : { points: [], segments: [] };
+  const selectedDayLoad = selectedDay ? estimatedDayMinutes(state, selectedDay.id) : 0;
   const docSummary = documentSummary(state.documents);
   const dayDocuments = selectedDay ? state.documents.filter((doc) => doc.tripSegments.includes(selectedDay.id)) : [];
   const budget = useMemo(() => calculateBudget(state), [state]);
+  const bookableReservations = useMemo(() => selectedBookableReservations(state), [state]);
   const allMapActivities = state.activities.filter((activity) => activity.included);
 
   const sensors = useSensors(
@@ -533,7 +564,9 @@ function App() {
                 >
                   <span>{day.label}</span>
                   <strong>{day.city}</strong>
-                  <small>{activeActivitiesForDay(state, day.id).length} actividades</small>
+                  <small>
+                    {activeActivitiesForDay(state, day.id).length} actividades · {dayLoadLabel(estimatedDayMinutes(state, day.id))}
+                  </small>
                 </button>
               ))}
             </div>
@@ -546,6 +579,9 @@ function App() {
                       <span>{selectedDay.label}</span>
                       <h2>{selectedDay.title}</h2>
                       <p>{selectedDay.summary}</p>
+                      <small className="dayLoadSummary">
+                        Carga estimada: {dayLoadLabel(selectedDayLoad)}
+                      </small>
                     </div>
                     <button
                       className="primaryAction"
@@ -559,17 +595,24 @@ function App() {
                   {selectedHotel && !selectedHotel.archived ? <HotelLinkCard hotel={selectedHotel} onEdit={setEditingHotel} /> : null}
                   {dayDocuments.length ? <div className="dayDocuments">{dayDocuments.map((doc) => <span key={doc.id}>{["Aprobado","Completado"].includes(doc.status) ? "✅" : "⏳"} {doc.title} · {doc.travelerLabel}</span>)}</div> : null}
                   {selectedDay.why ? <div className="zoneWhy"><strong>Por qué esta zona</strong><p>{selectedDay.why}</p></div> : null}
+                  <div className="visualLegend" aria-label="Leyenda de tipos">
+                    <span className="visual-activity">Actividad</span>
+                    <span className="visual-shopping">Compras</span>
+                    <span className="visual-culture">Cultura / paseo</span>
+                    <span className="visual-food">Comida</span>
+                    <span className="visual-travel">Viaje</span>
+                  </div>
 
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={selectedActivities.map((activity) => activity.id)} strategy={verticalListSortingStrategy}>
+                    <SortableContext items={selectedActiveActivities.map((activity) => activity.id)} strategy={verticalListSortingStrategy}>
                       <div className="timelineStack">
-                        {selectedActivities.map((activity) => (
+                        {selectedActiveActivities.map((activity) => (
                           <SortableActivityCard
                             key={activity.id}
                             activity={activity}
                             day={selectedDay}
                             days={days}
-                            dayActivities={selectedActivities}
+                            dayActivities={selectedActiveActivities}
                             estimate={activityEstimate(activity, state)}
                             onEdit={setEditingActivity}
                             onToggle={(item) => store.updateActivity({ ...item, included: !item.included })}
@@ -588,12 +631,10 @@ function App() {
                     nameForId={(id) => state.activities.find((a) => a.id === id)?.title ?? state.zonePlaces.find((z) => z.id === id)?.title ?? state.hotels.find((h) => h.id === id)?.name ?? id}
                   />
                   <ZoneExplorer
-                    zones={selectedZones}
-                    places={selectedZonePlaces}
-                    ordinalOffset={selectedMapActivities.length}
-                    onToggle={store.updateZonePlace}
-                    onRecommended={() => store.selectRecommendedZonePlaces(selectedDay.id, selectedDay.zoneIds ?? [])}
-                    onClear={() => store.clearZonePlaces(selectedDay.id, selectedDay.zoneIds ?? [])}
+                    zones={candidateZones}
+                    places={candidatePlaces}
+                    dayLabel={selectedDay.label}
+                    onAdd={(place) => store.setZonePlaceForDay(place, selectedDay.id, true)}
                   />
                   {selectedDay.id === "2027-01-01" ? <RyokanComparison candidates={state.ryokanCandidates} /> : null}
                 </section>
@@ -602,7 +643,7 @@ function App() {
                     day={selectedDay}
                     activities={selectedMapActivities}
                     hotels={selectedHotel && !selectedHotel.archived ? [selectedHotel] : []}
-                    zonePlaces={selectedZonePlaces}
+                    zonePlaces={candidatePlaces}
                     routeSegments={dynamicRoute.segments}
                     height="100%"
                   />
@@ -632,7 +673,7 @@ function App() {
               day={selectedDayId === "all" ? null : selectedDay}
               activities={selectedDayId === "all" ? allMapActivities : selectedActiveActivities}
               hotels={selectedDayId === "all" ? state.hotels.filter((hotel) => !hotel.archived) : selectedHotel && !selectedHotel.archived ? [selectedHotel] : []}
-              zonePlaces={selectedDayId === "all" ? state.zonePlaces.filter((place) => place.selected) : selectedZonePlaces}
+              zonePlaces={selectedDayId === "all" ? state.zonePlaces.filter((place) => place.selected) : candidatePlaces}
               routeSegments={selectedDayId === "all" ? [] : dynamicRoute.segments}
               height="70vh"
             />
@@ -674,17 +715,30 @@ function App() {
                   </div>
                 </div>
                 <div className="categoryList">
-                  {state.budget.categories.map((category) => (
-                    <label key={category.id}>
-                      <span>{category.name}</span>
-                      <input
-                        type="number"
-                        step="10000"
-                        value={category.limitCOP}
-                        onChange={(event) => store.updateCategory({ ...category, limitCOP: Number(event.target.value) || 0 })}
-                      />
-                    </label>
-                  ))}
+                  {state.budget.categories.map((category) => {
+                    const calculated =
+                      category.id.toLowerCase().includes("activ") ||
+                      category.name.toLowerCase().includes("activ");
+                    return (
+                      <label key={category.id} className={calculated ? "calculatedBudget" : ""}>
+                        <span>
+                          {category.name}
+                          {calculated ? <small>Se actualiza con lo seleccionado en Viaje</small> : null}
+                        </span>
+                        <input
+                          type="number"
+                          step="10000"
+                          value={category.limitCOP}
+                          readOnly={calculated}
+                          onChange={(event) => {
+                            if (!calculated) {
+                              store.updateCategory({ ...category, limitCOP: Number(event.target.value) || 0 });
+                            }
+                          }}
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -751,7 +805,7 @@ function App() {
               <h3>Qué ya se puede reservar</h3>
             </div>
             <div className="reservationGrid">
-              {state.reservations.map((reservation) => (
+              {bookableReservations.map((reservation) => (
                 <article className="reservationCard" key={reservation.id}>
                   <span>{reservation.travelDate}</span>
                   <h4>{reservation.name}</h4>
@@ -782,9 +836,9 @@ function App() {
             </div>
 
             {moreView === "documents" ? (
-              <DocumentsScreen documents={state.documents} hotels={state.hotels} reservations={state.reservations} onSave={store.updateDocument} />
+              <DocumentsScreen documents={state.documents} hotels={state.hotels} reservations={bookableReservations} onSave={store.updateDocument} />
             ) : moreView === "readiness" ? (
-              <DocumentsScreen mode="readiness" documents={state.documents} hotels={state.hotels} reservations={state.reservations} onSave={store.updateDocument} />
+              <DocumentsScreen mode="readiness" documents={state.documents} hotels={state.hotels} reservations={bookableReservations} onSave={store.updateDocument} />
             ) : (
               <>
                 <div className="moreQuickGrid">
