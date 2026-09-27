@@ -3,6 +3,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   onSnapshot,
   serverTimestamp,
@@ -31,6 +32,24 @@ const COLLECTIONS = [
 ] as const;
 
 type CollectionName = (typeof COLLECTIONS)[number];
+
+export interface CloudSaveReceipt {
+  revision: string;
+  verifiedAt: string;
+  activityFingerprint: string;
+}
+
+function activityFingerprint(state: TripState) {
+  const activities = state.activities
+    .filter((activity) => activity.included)
+    .map((activity) => `${activity.id}|${activity.dayId}|${activity.order}`)
+    .sort();
+  const places = state.zonePlaces
+    .filter((place) => place.selected)
+    .map((place) => `${place.id}|${place.suggestedDayId ?? ""}|${place.order}`)
+    .sort();
+  return JSON.stringify({ activities, places });
+}
 
 function tripRef(db: Firestore, tripId = tripIdFromEnv) {
   return doc(db, "trips", tripId);
@@ -84,17 +103,26 @@ export async function seedTripIfNeeded(db: Firestore, user: User, state: TripSta
   }
 }
 
-export async function writeTripState(db: Firestore, state: TripState, tripId = tripIdFromEnv) {
+export async function writeTripState(
+  db: Firestore,
+  state: TripState,
+  tripId = tripIdFromEnv,
+): Promise<CloudSaveReceipt> {
   const id = tripId || state.trip.id;
+  const revision = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const fingerprint = activityFingerprint(state);
+
   await setDoc(
     tripRef(db, id),
     {
       id,
       name: state.trip.displayName,
       updatedAt: serverTimestamp(),
+      lastRevision: revision,
     },
     { merge: true },
   );
+
   await setDoc(
     doc(db, "trips", id, "settings", "main"),
     withoutUndefined({
@@ -112,20 +140,27 @@ export async function writeTripState(db: Firestore, state: TripState, tripId = t
       migrationReport: state.migrationReport,
       ryokanCandidates: state.ryokanCandidates,
       removedItems: state.removedItems,
+      revision,
       updatedAt: new Date().toISOString(),
     }),
     { merge: false },
   );
+
   await setDoc(doc(db, "trips", id, "settings", "budget"), withoutUndefined(state.budget), {
     merge: false,
   });
+
   if (state.activityBlackBox) {
     await setDoc(
       doc(db, "trips", id, "settings", "activity-black-box"),
-      withoutUndefined(state.activityBlackBox),
+      withoutUndefined({
+        ...state.activityBlackBox,
+        revision,
+      }),
       { merge: false },
     );
   }
+
   await Promise.all([
     replaceCollection(db, id, "days", state.days),
     replaceCollection(db, id, "activities", state.activities),
@@ -139,6 +174,39 @@ export async function writeTripState(db: Firestore, state: TripState, tripId = t
     replaceCollection(db, id, "routeSegments", state.routeSegments),
     replaceCollection(db, id, "documents", state.documents),
   ]);
+
+  const verificationRef = doc(db, "trips", id, "settings", "cloud-save-verification");
+  await setDoc(
+    verificationRef,
+    withoutUndefined({
+      revision,
+      activityFingerprint: fingerprint,
+      selectedActivityCount: state.activities.filter((activity) => activity.included).length,
+      selectedZonePlaceCount: state.zonePlaces.filter((place) => place.selected).length,
+      blackBoxUpdatedAt: state.activityBlackBox?.updatedAt ?? "",
+      writtenAt: new Date().toISOString(),
+    }),
+    { merge: false },
+  );
+
+  const verified = await getDocFromServer(verificationRef);
+  if (!verified.exists()) {
+    throw new Error("Firestore no confirmó el documento de verificación.");
+  }
+  const remote = verified.data() as {
+    revision?: string;
+    activityFingerprint?: string;
+    writtenAt?: string;
+  };
+  if (remote.revision !== revision || remote.activityFingerprint !== fingerprint) {
+    throw new Error("La verificación remota no coincide con el estado guardado.");
+  }
+
+  return {
+    revision,
+    verifiedAt: remote.writtenAt ?? new Date().toISOString(),
+    activityFingerprint: fingerprint,
+  };
 }
 
 export function subscribeTripState(
