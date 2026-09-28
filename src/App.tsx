@@ -856,6 +856,9 @@ function App() {
                   </div>
                   <strong>{formatCOP(purchase.amountCOP)}</strong>
                   <small>{purchase.status} · {purchase.date || "sin fecha"}</small>
+                  {purchase.paymentMethodLabel ? (
+                    <small className="paymentMethodBadge">{purchase.paymentMethodLabel}</small>
+                  ) : null}
                   <div className="actionRow">
                     {purchase.link ? (
                       <a className="chipButton" href={purchase.link} target="_blank" rel="noreferrer">
