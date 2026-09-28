@@ -1,5 +1,6 @@
 import type { Activity, Reservation, TripState } from "../types";
 import { activityEstimate } from "./money";
+import { bookingReleaseForActivity } from "./bookingCalendar2026";
 
 const LEGACY_ACTIVITY_ALIASES: Record<string, string> = {
   "d26-pokecafe": "v7-28-pokecafe",
@@ -86,16 +87,23 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
     const link = bookingLinkForActivity(state, activity) || reservation.link;
     if (!link) return;
 
+    const release = bookingReleaseForActivity(activity.id);
     rows.push({
       ...reservation,
       activityId: activity.id,
       travelDate: activity.dayId,
       name: reservation.name || activity.title,
+      opens: release?.label || reservation.opens,
       estimatedPriceCOP:
         reservation.estimatedPriceCOP > 0
           ? reservation.estimatedPriceCOP
           : activityEstimate(activity, state),
       link,
+      reminderNotes: release?.note || reservation.reminderNotes,
+      bookingCheckDate: release?.checkDate,
+      bookingCheckLabel: release?.label,
+      bookingConfidence: release?.confidence,
+      bookingSourceUrl: release?.sourceUrl,
     });
   });
 
@@ -111,21 +119,27 @@ export function selectedBookableReservations(state: TripState): Reservation[] {
       activityAlreadyPurchased(state, activity)
     ) return;
 
+    const release = bookingReleaseForActivity(activity.id);
     rows.push({
       id: `auto-${activity.id}`,
       activityId: activity.id,
       travelDate: activity.dayId,
       name: activity.title,
       currentStatus: cost?.reservationStatus || "POR RESERVAR",
-      opens: cost?.opens || "Revisar disponibilidad",
+      opens: release?.label || cost?.opens || "Revisar disponibilidad",
       estimatedPriceCOP: activityEstimate(activity, state),
       link,
       provider: cost?.link ? "Fuente de reserva/precio" : "Desde actividad seleccionada",
       reminderNotes:
+        release?.note ||
         cost?.note ||
         activity.holidayNote ||
         activity.note ||
         "Esta reserva aparece automáticamente porque la actividad está activa.",
+      bookingCheckDate: release?.checkDate,
+      bookingCheckLabel: release?.label,
+      bookingConfidence: release?.confidence,
+      bookingSourceUrl: release?.sourceUrl,
     });
   });
 
