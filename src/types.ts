@@ -170,6 +170,10 @@ export interface Reservation {
   link: string;
   provider: string;
   reminderNotes: string;
+  bookingCheckDate?: string;
+  bookingCheckLabel?: string;
+  bookingConfidence?: "official" | "estimated" | "available";
+  bookingSourceUrl?: string;
 }
 
 export interface CostItem {
