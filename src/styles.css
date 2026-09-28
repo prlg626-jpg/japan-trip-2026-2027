@@ -1155,3 +1155,13 @@ a {
 @media(max-width:620px){.reservationDayHeader{align-items:flex-start}.reservationTitleRow{display:grid}.reservationTitleRow>strong{text-align:left}.reservationListCard{grid-template-columns:30px minmax(0,1fr);padding:12px}}
 
 .reservationLoad em{justify-self:end;padding:4px 7px;border-radius:999px;background:#fff0db;color:#965b00;font-size:9px;font-style:normal;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+
+
+.bookingRelease{display:grid;gap:3px;padding:9px 11px;border-radius:14px;border:1px solid transparent}
+.bookingRelease span{font-size:9px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.bookingRelease b{font-size:13px;line-height:1.25}
+.bookingRelease small{font-size:10px;font-weight:800}
+.bookingRelease.future{background:#f2efff;border-color:#ddd5ff;color:#51449e}
+.bookingRelease.soon{background:#fff3d8;border-color:#f4d59b;color:#9b5f00}
+.bookingRelease.available{background:#e8f7ef;border-color:#bfe4cf;color:#276745}
+.bookingRelease.unknown{background:#f4f3f1;border-color:#dedad4;color:#655f69}
