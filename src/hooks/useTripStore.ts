@@ -39,6 +39,7 @@ import {
 } from "../utils/reservationPlanning2026";
 import { applyBookingCalendarRebalanceV1 } from "../utils/bookingCalendar2026";
 import { applyConfirmedKlookPurchasesV1 } from "../utils/confirmedPurchases2026";
+import { applyPaymentMethodRegister } from "../utils/paymentMethods2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -65,7 +66,8 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const priced = applyCurrentActivityPricing(bookingRebalance.state);
   const clarified = applyReservationPlanningCopy(priced);
   const confirmedPurchases = applyConfirmedKlookPurchasesV1(clarified);
-  const cleaned = cleanState(confirmedPurchases.state);
+  const withPaymentMethods = applyPaymentMethodRegister(confirmedPurchases.state);
+  const cleaned = cleanState(withPaymentMethods);
   cleaned.activityBlackBox =
     balanceMigration.migrated ||
     dinnerCleanup.migrated ||
