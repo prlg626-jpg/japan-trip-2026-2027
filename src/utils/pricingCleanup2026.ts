@@ -70,13 +70,34 @@ export function applyCurrentActivityPricing(input: TripState): TripState {
   });
 
   updateActivity(state, "d7-jeans", {
-    priceScope: "per_person",
-    priceOriginal: { currency: "JPY", unit: 24200, quantity: 1 },
+    title: "Daruma Jeans · Denim Jeans Making Workshop",
+    place: "Daruma Jeans Harajuku",
+    address: "Harajuku TW Building 4F, 1-14-24 Jingumae, Shibuya, Tokyo",
+    start: "11:00",
+    end: "12:00",
+    durationMinutes: 60,
+    estimatedDurationMinutes: 60,
+    recommendedVisitMinutes: 60,
+    bookingUrl:
+      "https://www.klook.com/en-US/activity/194175-tokyo-denim-jeans-making-workshop/",
+    googleMapsUrl:
+      "https://www.google.com/maps/search/?api=1&query=Daruma+Jeans+Harajuku",
+    description:
+      "Taller práctico en Harajuku con denim Okayama. Eligen corte y talla y personalizan con parches, botones y remaches; el bordado es una personalización adicional. Sin bordado, el retiro puede ser el mismo día; con bordado, Klook indica retiro 2 días después.",
+    note:
+      "Reserva elegida: 7 ene 2027 · 11:00 · 2 personas. Personalización con parches, botones y remaches; bordado opcional con costo adicional.",
+    priceScope: "for_two",
+    priceOriginal: { currency: "COP", unit: 832431, quantity: 1 },
+    estimatedCostCOP: 832431,
+    totalForTwoCOP: 832431,
     priceLabel:
-      "Desde ¥24.200 por persona · DENIM WORKS en Tokyo, incluido el taller",
+      "$832.431 COP para los dos · precio observado en Klook para 7 ene 2027 11:00 (US$248,70, 15% off)",
     priceVerifiedAt: VERIFIED_AT,
-    priceSourceUrl: "https://betty.co.jp/en/village/make/",
-    priceDynamic: false,
+    priceSourceUrl:
+      "https://www.klook.com/en-US/activity/194175-tokyo-denim-jeans-making-workshop/",
+    priceDynamic: true,
+    reservationRequired: true,
+    bookingLabel: "Reservar en Klook",
   });
 
   updateActivity(state, "d7-spa", {
@@ -192,11 +213,34 @@ export function applyCurrentActivityPricing(input: TripState): TripState {
   });
 
   updateCost(state, "d7-jeans", {
-    original: { currency: "JPY", unit: 24200, quantity: 2 },
+    title: "Daruma Jeans Harajuku · Denim Jeans Making Workshop",
+    original: { currency: "COP", unit: 832431, quantity: 1 },
+    estimateCOP: 832431,
+    reservationStatus: "DISPONIBLE AHORA",
+    opens: "Ya disponible para 7 ene 2027 · 11:00",
     note:
-      "Tokyo ofrece DENIM WORKS. Desde 1 sep 2026 el precio publicado es ¥24.200 impuestos incluidos por persona, con experiencia incluida.",
-    link: "https://betty.co.jp/en/village/make/",
+      "Klook muestra US$248,70 para 2 personas el 7 ene 2027 a las 11:00 (15% off). Convertido a $832.431 COP con la tasa consultada el 27 sep 2026. El precio es dinámico y puede cambiar antes del pago.",
+    link:
+      "https://www.klook.com/en-US/activity/194175-tokyo-denim-jeans-making-workshop/",
   });
+
+  const jeansReservation = state.reservations.find(
+    (reservation) => reservation.activityId === "d7-jeans",
+  );
+  if (jeansReservation) {
+    Object.assign(jeansReservation, {
+      name: "Daruma Jeans · Denim Jeans Making Workshop",
+      travelDate: "2027-01-07",
+      currentStatus: "DISPONIBLE AHORA",
+      opens: "7 ene 2027 · 11:00 seleccionado",
+      estimatedPriceCOP: 832431,
+      link:
+        "https://www.klook.com/en-US/activity/194175-tokyo-denim-jeans-making-workshop/",
+      provider: "Klook · Daruma Jeans",
+      reminderNotes:
+        "2 personas · US$248,70 en el carrito (15% off). Sin bordado: retiro el mismo día entre 18:00–19:00; con bordado: retiro 2 días después.",
+    });
+  }
 
   updateCost(state, "d7-spa", {
     original: { currency: "JPY", unit: 24750, quantity: 2 },
