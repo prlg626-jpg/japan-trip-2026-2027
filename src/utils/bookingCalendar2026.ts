@@ -116,11 +116,13 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
   },
   "d7-jeans": {
     activityId: "d7-jeans",
-    checkDate: "2026-10-01",
-    label: "1 oct · empezar a revisar enero",
-    confidence: "estimated",
-    sourceUrl: "https://betty.co.jp/en/village/make/",
-    note: "No encontramos una regla pública fija de liberación. Se deja una fecha temprana de control por ser una experiencia de cumpleaños.",
+    checkDate: "2026-09-27",
+    label: "Ya disponible · 7 ene 2027 · 11:00",
+    confidence: "available",
+    sourceUrl:
+      "https://www.klook.com/en-US/activity/194175-tokyo-denim-jeans-making-workshop/",
+    note:
+      "Klook ya permite seleccionar 7 ene 2027 a las 11:00 para 2 personas. Precio observado: US$248,70 total (15% off), ≈ $832.431 COP al cambio consultado.",
   },
   "d7-spa": {
     activityId: "d7-spa",
