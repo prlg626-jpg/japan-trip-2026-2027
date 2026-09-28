@@ -157,6 +157,7 @@ export interface Purchase {
   notes: string;
   link: string;
   receipt: { url: string; driveUrl: string; fileName: string; storagePath: string };
+  paymentMethodLabel?: string;
 }
 
 export interface Reservation {
