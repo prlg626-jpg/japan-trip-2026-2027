@@ -37,6 +37,7 @@ import {
   applyDec26RouteReviewV1,
   applyReservationPlanningCopy,
 } from "../utils/reservationPlanning2026";
+import { applyBookingCalendarRebalanceV1 } from "../utils/bookingCalendar2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -59,11 +60,15 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const balanceMigration = applyAuthorizedItineraryBalanceV1(state);
   const dinnerCleanup = removePlaceholderNyeDinnerV1(balanceMigration.state);
   const dec26Route = applyDec26RouteReviewV1(dinnerCleanup.state);
-  const priced = applyCurrentActivityPricing(dec26Route.state);
+  const bookingRebalance = applyBookingCalendarRebalanceV1(dec26Route.state);
+  const priced = applyCurrentActivityPricing(bookingRebalance.state);
   const clarified = applyReservationPlanningCopy(priced);
   const cleaned = cleanState(clarified);
   cleaned.activityBlackBox =
-    balanceMigration.migrated || dinnerCleanup.migrated || dec26Route.migrated
+    balanceMigration.migrated ||
+    dinnerCleanup.migrated ||
+    dec26Route.migrated ||
+    bookingRebalance.migrated
       ? captureActivityBlackBox(cleaned)
       : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
   return cleaned;
