@@ -170,6 +170,30 @@ function compactDuration(minutes: number) {
   return rest ? `≈ ${hours} h ${rest} min` : `≈ ${hours} h`;
 }
 
+function bookingCountdown(date?: string) {
+  if (!date) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${date}T00:00:00`);
+  const diff = Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+  if (diff < 0) return "Ya deberías revisarlo";
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Mañana";
+  return `Faltan ${diff} días`;
+}
+
+function bookingUrgencyClass(date?: string, confidence?: Reservation["bookingConfidence"]) {
+  if (confidence === "available") return "available";
+  if (!date) return "unknown";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${date}T00:00:00`);
+  const diff = Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+  if (diff <= 0) return "available";
+  if (diff <= 7) return "soon";
+  return "future";
+}
+
 const visualGroupLabels: Record<VisualGroup, string> = {
   activity: "Actividad",
   shopping: "Compras",
@@ -892,9 +916,24 @@ function App() {
                                   : "Precio por confirmar"}
                               </strong>
                             </div>
+                            {reservation.bookingCheckLabel ? (
+                              <div className={`bookingRelease ${bookingUrgencyClass(reservation.bookingCheckDate, reservation.bookingConfidence)}`}>
+                                <span>
+                                  {reservation.bookingConfidence === "official"
+                                    ? "Fecha oficial"
+                                    : reservation.bookingConfidence === "estimated"
+                                      ? "Fecha para empezar a mirar"
+                                      : "Ya disponible"}
+                                </span>
+                                <b>{reservation.bookingCheckLabel}</b>
+                                {reservation.bookingCheckDate ? (
+                                  <small>{bookingCountdown(reservation.bookingCheckDate)}</small>
+                                ) : null}
+                              </div>
+                            ) : null}
                             <div className="reservationMeta">
                               <span>{reservation.currentStatus}</span>
-                              {reservation.opens ? <span>📅 {reservation.opens}</span> : null}
+                              {!reservation.bookingCheckLabel && reservation.opens ? <span>📅 {reservation.opens}</span> : null}
                               {duration > 0 ? <span>⏱ {compactDuration(duration)}</span> : null}
                             </div>
                             {reservation.reminderNotes ? (
