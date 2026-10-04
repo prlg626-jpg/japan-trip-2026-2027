@@ -40,6 +40,10 @@ import {
 import { applyBookingCalendarRebalanceV1 } from "../utils/bookingCalendar2026";
 import { applyConfirmedKlookPurchasesV1 } from "../utils/confirmedPurchases2026";
 import { applyPaymentMethodRegister } from "../utils/paymentMethods2026";
+import {
+  CURRENT_RECOVERY_BASELINE,
+  RECOVERY_BASELINE_STORAGE_KEY,
+} from "../utils/recoveryBaseline";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -98,6 +102,17 @@ function loadInitialState(): TripState {
   );
 
   try {
+    const recoveryApplied =
+      localStorage.getItem(RECOVERY_BASELINE_STORAGE_KEY) ===
+      CURRENT_RECOVERY_BASELINE;
+    if (!recoveryApplied) {
+      const recovered = withRuntimeEnrichment(protectedRecovery);
+      return finalizeProtectedState(
+        recovered,
+        protectedRecovery.activityBlackBox,
+      );
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const stored = migrateStoredState(JSON.parse(saved) as TripState);
