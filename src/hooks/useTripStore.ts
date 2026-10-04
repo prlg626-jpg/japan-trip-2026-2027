@@ -68,14 +68,27 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const confirmedPurchases = applyConfirmedKlookPurchasesV1(clarified);
   const withPaymentMethods = applyPaymentMethodRegister(confirmedPurchases.state);
   const cleaned = cleanState(withPaymentMethods);
-  cleaned.activityBlackBox =
+  const migrationChangedSelections =
     balanceMigration.migrated ||
     dinnerCleanup.migrated ||
     dec26Route.migrated ||
     bookingRebalance.migrated ||
-    confirmedPurchases.migrated
-      ? captureActivityBlackBox(cleaned)
-      : (existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned));
+    confirmedPurchases.migrated;
+
+  if (migrationChangedSelections) {
+    // Refresh the protected decisions produced by code migrations, but preserve
+    // the previous decision timestamp. A runtime migration is not a user edit
+    // and must never make an incomplete browser look newer than Firestore.
+    const refreshedBlackBox = captureActivityBlackBox(cleaned);
+    const previousUpdatedAt =
+      existingBlackBox?.updatedAt ?? cleaned.activityBlackBox?.updatedAt;
+    cleaned.activityBlackBox = previousUpdatedAt
+      ? { ...refreshedBlackBox, updatedAt: previousUpdatedAt }
+      : refreshedBlackBox;
+  } else {
+    cleaned.activityBlackBox =
+      existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned);
+  }
   return cleaned;
 }
 
