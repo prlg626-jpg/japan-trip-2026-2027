@@ -564,7 +564,15 @@ export function useTripStore() {
   }, [state]);
 
   const resetToInitial = useCallback(() => {
-    replaceState(finalizeProtectedState(withRuntimeEnrichment(structuredClone(initialTrip as TripState))));
+    const protectedRecovery = migrateStoredState(
+      structuredClone(recoveryTrip as TripState),
+    );
+    replaceState(
+      finalizeProtectedState(
+        withRuntimeEnrichment(protectedRecovery),
+        protectedRecovery.activityBlackBox,
+      ),
+    );
     setDirtySince(new Date());
   }, [replaceState]);
 
