@@ -301,6 +301,7 @@ export function subscribeTripState(
   let budgetRaw: Record<string, unknown> | null = null;
   let activityBlackBoxRaw: (ActivityBlackBox & { __revision?: string }) | null = null;
   let manifest: SyncManifest | null = null;
+  let lastEmittedRevision = "";
   const pendingBySource = new Map<string, boolean>();
 
   const hasPendingWrites = () => [...pendingBySource.values()].some(Boolean);
@@ -309,6 +310,7 @@ export function subscribeTripState(
     if (!manifest || !settingsRaw || !budgetRaw || hasPendingWrites()) return;
 
     const revision = manifest.revision;
+    if (revision === lastEmittedRevision) return;
     if (revisionOf(settingsRaw) !== revision || revisionOf(budgetRaw) !== revision) return;
 
     if (manifest.blackBoxUpdatedAt) {
@@ -335,6 +337,7 @@ export function subscribeTripState(
       (latest.zonePlaces ?? []) as TripState["zonePlaces"],
     );
     if (fingerprint !== manifest.activityFingerprint) return;
+    lastEmittedRevision = revision;
 
     onState(
       {

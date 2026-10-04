@@ -17,7 +17,7 @@ import {
 } from "../services/tripRepository";
 import recoveryTrip from "../data/recoveryTrip.json";
 import { recoverProtectedTrip } from "../utils/protectedRecovery";
-import { blackBoxIsNewer } from "../utils/syncProtocol";
+import { blackBoxIsNewer, comparableTrip } from "../utils/syncProtocol";
 import {
   CURRENT_RECOVERY_BASELINE,
   RECOVERY_BASELINE_STORAGE_KEY,
@@ -120,7 +120,7 @@ export function useFirebaseSync(
         if (localShouldWin || recoveryBaselineMissing || cloudNeedsRecords) {
           const receipt = await writeTripState(firebase.db, chosen, undefined, remoteRevision.current);
           remoteRevision.current = receipt.revision;
-          lastRemote.current = JSON.stringify(chosen);
+          lastRemote.current = comparableTrip(chosen);
           replaceState(chosen);
           setVerifiedAt(receipt.verifiedAt);
           setStatus("verified");
@@ -142,7 +142,7 @@ export function useFirebaseSync(
             if (pendingLocalWrites.current > 0) return;
 
             remoteRevision.current = committedManifest.revision;
-            const serialized = JSON.stringify(remoteState);
+            const serialized = comparableTrip(remoteState);
             lastRemote.current = serialized;
             localStorage.setItem(RECOVERY_BASELINE_STORAGE_KEY, CURRENT_RECOVERY_BASELINE);
             replaceState(remoteState);
@@ -168,8 +168,8 @@ export function useFirebaseSync(
   useEffect(() => {
     if (!user || !firebaseConfigured() || !ready.current || syncBlocked.current) return;
 
-    const serialized = JSON.stringify(state);
-    if (serialized === lastRemote.current) return;
+    const serialized = comparableTrip(state);
+    if (serialized === lastRemote.current || serialized === latestRequested.current) return;
 
     latestRequested.current = serialized;
     pendingLocalWrites.current += 1;
