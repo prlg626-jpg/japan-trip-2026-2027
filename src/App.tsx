@@ -828,740 +828,255 @@ function App() {
                   {state.hotels.filter((hotel) => !hotel.archived).map((hotel) => (
                     <article className="hotelCard" key={hotel.id}>
                       <div>
-                        <s…5674 tokens truncated…solid var(--line);
-  border-radius: 10px;
-  background: white;
-  cursor: pointer;
-}
-
-.miniActions span {
-  white-space: nowrap;
-  color: var(--green);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.dayRail {
-  display: flex;
-  gap: 9px;
-  max-width: 100%;
-  min-width: 0;
-  overflow: auto;
-  padding-bottom: 10px;
-}
-
-.dayTile {
-  min-width: 138px;
-  min-height: 118px;
-  padding: 15px;
-  border: 0;
-  border-radius: 18px;
-  color: white;
-  text-align: left;
-  cursor: pointer;
-  opacity: 0.7;
-}
-
-.dayTile.active {
-  opacity: 1;
-  box-shadow: var(--shadow);
-}
-
-.dayTile strong,
-.dayTile small {
-  display: block;
-}
-
-.dayTile strong {
-  margin: 10px 0 7px;
-  font-size: 17px;
-}
-
-.dayTile small {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.dayDetailGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  margin-top: 8px;
-  min-width: 0;
-}
-
-.timelinePanel {
-  min-width: 0;
-}
-
-.dayHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: flex-start;
-  margin: 8px 0 14px;
-}
-
-.dayHeader h2 {
-  margin: 6px 0 6px;
-  font-size: clamp(26px, 7vw, 44px);
-  line-height: 1;
-}
-
-.dayHeader p {
-  max-width: 760px;
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
-.routeNote {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 11px;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 1px solid #d7eadf;
-  border-radius: 16px;
-  background: #f2fbf6;
-}
-
-.routeNote span {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.mapPanel {
-  min-height: 480px;
-  min-width: 0;
-  position: sticky;
-  top: 16px;
-}
-
-.mapCanvas {
-  width: 100%;
-  min-height: 320px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: #e9e1d6;
-  box-shadow: var(--shadow);
-}
-
-.mapMarker {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 3px solid white;
-  background: var(--violet);
-  color: white;
-  box-shadow: 0 5px 16px rgba(23, 21, 43, 0.25);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.mapMarker.hotel {
-  border-radius: 10px;
-  background: var(--ink);
-}
-
-.activityCard {
-  grid-template-columns: auto 58px 1fr;
-  padding: 12px;
-  position: relative;
-}
-
-.activityCard.inactive,
-.miniActivity.inactive {
-  opacity: 0.48;
-  border-style: dashed;
-}
-
-.activityCard.dragging {
-  box-shadow: 0 24px 50px rgba(23, 21, 43, 0.16);
-}
-
-.dragHandle {
-  align-self: stretch;
-  width: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fbfaf7;
-  color: var(--muted);
-  touch-action: none;
-  cursor: grab;
-}
-
-.activityTime {
-  padding-top: 6px;
-}
-
-.activityTime span {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.activityTitleRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.badgeRow,
-.actionRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 9px;
-}
-
-.badgeRow span {
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: #f1eee8;
-  color: #665f53;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.statusBadge.idea {
-  background: #eef3ff;
-  color: #315c9c;
-}
-
-.statusBadge.pendiente_de_reservar {
-  background: #fff2d8;
-  color: #936004;
-}
-
-.statusBadge.reservada {
-  background: #edf8f4;
-  color: #147252;
-}
-
-.statusBadge.pagada,
-.statusBadge.completada {
-  background: #e7f8e7;
-  color: #246f31;
-}
-
-.badgeRow .warm {
-  background: #fff0ec;
-  color: #a44532;
-}
-
-.badgeRow .cool {
-  background: #ecebff;
-  color: #4f44c3;
-}
-
-.noteText {
-  margin-top: 9px !important;
-}
-
-.chipButton {
-  min-height: 34px;
-  padding: 7px 9px;
-  font-size: 12px;
-}
-
-.moveMenu {
-  margin-top: 8px;
-}
-
-.moveMenu summary {
-  width: max-content;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.moveMenu div {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.statCard {
-  min-height: 112px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: white;
-  box-shadow: 0 10px 28px rgba(30, 22, 12, 0.05);
-}
-
-.statCard span {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.statCard strong {
-  display: block;
-  margin-top: 10px;
-  font-size: clamp(21px, 5vw, 30px);
-  line-height: 1;
-}
-
-.statCard.spent {
-  background: #fff4f2;
-}
-
-.statCard.reserved {
-  background: #fff9e8;
-}
-
-.statCard.pending {
-  background: #f6f2ff;
-}
-
-.statCard.available {
-  background: #effaf4;
-}
-
-.statCard.danger strong {
-  color: var(--red);
-}
-
-.panelCard {
-  min-width: 0;
-}
-
-.fxInputs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.fxInputs label {
-  display: grid;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.fxInputs input {
-  width: 120px;
-}
-
-.categoryList label {
-  display: grid;
-  grid-template-columns: 1fr 140px;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: white;
-}
-
-.categoryList span {
-  font-weight: 850;
-}
-
-.hotelCard,
-.purchaseCard,
-.reservationCard,
-.libraryCard,
-.sourceCard {
-  display: grid;
-  gap: 8px;
-  padding: 15px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: white;
-  box-shadow: 0 10px 28px rgba(30, 22, 12, 0.05);
-}
-
-.hotelCard strong,
-.purchaseCard strong,
-.reservationCard strong {
-  font-size: 18px;
-}
-
-.hotelCard small,
-.purchaseCard small,
-.reservationCard small,
-.libraryCard small {
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.purchaseGrid,
-.reservationGrid,
-.libraryGrid,
-.sourceGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.usedList {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.usedList small {
-  padding: 5px 7px;
-  border-radius: 8px;
-  background: #f1eee8;
-  color: #635c50;
-}
-
-.backupGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.migrationNotes {
-  margin-top: 10px;
-  color: var(--muted);
-}
-
-.modalLayer {
-  position: fixed;
-  z-index: 100;
-  inset: 0;
-  display: grid;
-  place-items: end center;
-  padding: 12px;
-  background: rgba(15, 13, 24, 0.42);
-}
-
-.modalCard {
-  width: min(820px, 100%);
-  max-height: min(88vh, 900px);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  border-radius: 24px;
-  background: var(--paper);
-  box-shadow: 0 30px 90px rgba(10, 7, 20, 0.26);
-  overflow: hidden;
-}
-
-.modalHeader,
-.modalFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
-}
-
-.modalHeader h2 {
-  margin: 0;
-}
-
-.modalBody {
-  overflow: auto;
-  padding: 16px;
-}
-
-.modalFooter {
-  justify-content: flex-end;
-  border-top: 1px solid var(--line);
-  border-bottom: 0;
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 11px;
-}
-
-.formGrid label {
-  display: grid;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.formGrid textarea {
-  resize: vertical;
-}
-
-@media (max-width: 720px) {
-  .topBar {
-    display: block;
-  }
-
-  .topActions {
-    margin-top: 10px;
-  }
-
-  .todayHero {
-    display: grid;
-    align-items: end;
-    min-height: 260px;
-  }
-
-  .todayHero select {
-    max-width: none;
-  }
-
-  .dayHeader {
-    display: grid;
-  }
-
-  .activityCard {
-    grid-template-columns: 34px 50px 1fr;
-    padding: 10px;
-  }
-
-  .activityTitleRow .iconButton {
-    width: 34px;
-    height: 34px;
-  }
-
-  .categoryList label {
-    grid-template-columns: 1fr;
-  }
-
-  .modalLayer {
-    place-items: end center;
-    padding: 0;
-  }
-
-  .modalCard {
-    border-radius: 24px 24px 0 0;
-    max-height: 92vh;
-  }
-}
-
-@media (min-width: 760px) {
-  .todayGrid,
-  .moneyGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .kpiGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .purchaseGrid,
-  .reservationGrid,
-  .libraryGrid,
-  .sourceGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .formGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .formGrid .full {
-    grid-column: 1 / -1;
-  }
-
-  .moveMenu div {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (min-width: 1120px) {
-  .appShell {
-    display: grid;
-    grid-template-columns: 236px minmax(0, 1fr);
-  }
-
-  .sideNav {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 26px;
-    padding: 24px 18px;
-    border-right: 1px solid var(--line);
-    background: rgba(255, 253, 250, 0.78);
-    backdrop-filter: blur(20px);
-  }
-
-  .sideNav nav {
-    display: grid;
-    gap: 7px;
-  }
-
-  .sideNav button {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 14px;
-    font-weight: 850;
-    text-align: left;
-  }
-
-  .sideNav button.active {
-    background: var(--ink);
-    color: white;
-  }
-
-  .sideNav .syncPill {
-    margin-top: auto;
-  }
-
-  .mainPane {
-    padding: 24px 26px 44px;
-  }
-
-  .topActions .syncPill {
-    display: inline-flex;
-  }
-
-  .bottomNav {
-    display: none;
-  }
-
-  .dayDetailGrid {
-    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
-    align-items: start;
-  }
-
-  .mapPanel {
-    height: calc(100vh - 120px);
-  }
-
-  .kpiGrid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .purchaseGrid,
-  .reservationGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .moreGrid {
-    grid-template-columns: 1.1fr 0.9fr;
-  }
-
-  .libraryGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-
-/* Reservation agenda: vertical, grouped by travel day */
-.reservationSectionTitle > div{display:grid;gap:3px}
-.reservationSectionTitle p{margin:0;color:var(--muted);font-size:12px}
-.reservationDayList{display:grid;gap:16px}
-.reservationDayGroup{display:grid;gap:10px}
-.reservationDayHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:17px;background:#f8f6f2}
-.reservationDayHeader>div:first-child{display:grid;gap:2px}
-.reservationDayHeader span{color:var(--muted);font-size:12px;font-weight:850}
-.reservationDayHeader strong{font-size:16px}
-.reservationLoad{display:grid;gap:2px;text-align:right}
-.reservationLoad b{font-size:13px}
-.reservationLoad small{color:var(--muted);font-size:10px}
-.reservationDayItems{display:grid;gap:9px}
-.reservationListCard{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 8px 22px rgba(30,22,12,.045)}
-.reservationOrdinal{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#efecff;color:var(--violet);font-size:12px;font-weight:950}
-.reservationListMain{min-width:0;display:grid;gap:9px}
-.reservationTitleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-.reservationTitleRow>div{min-width:0}
-.reservationTitleRow h4{margin:0 0 4px;font-size:16px}
-.reservationTitleRow p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}
-.reservationTitleRow>strong{flex:0 0 auto;font-size:14px;text-align:right}
-.reservationMeta{display:flex;flex-wrap:wrap;gap:6px}
-.reservationMeta span{padding:5px 7px;border-radius:999px;background:#f5f3ef;color:#5f5969;font-size:10px;font-weight:800}
-.reservationNote{color:var(--muted);font-size:11px;line-height:1.45}
-.emptyReservationState{padding:18px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center}
-@media(max-width:620px){.reservationDayHeader{align-items:flex-start}.reservationTitleRow{display:grid}.reservationTitleRow>strong{text-align:left}.reservationListCard{grid-template-columns:30px minmax(0,1fr);padding:12px}}
-
-.reservationLoad em{justify-self:end;padding:4px 7px;border-radius:999px;background:#fff0db;color:#965b00;font-size:9px;font-style:normal;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
-
-
-.bookingRelease{display:grid;gap:3px;padding:9px 11px;border-radius:14px;border:1px solid transparent}
-.bookingRelease span{font-size:9px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
-.bookingRelease b{font-size:13px;line-height:1.25}
-.bookingRelease small{font-size:10px;font-weight:800}
-.bookingRelease.future{background:#f2efff;border-color:#ddd5ff;color:#51449e}
-.bookingRelease.soon{background:#fff3d8;border-color:#f4d59b;color:#9b5f00}
-.bookingRelease.available{background:#e8f7ef;border-color:#bfe4cf;color:#276745}
-.bookingRelease.unknown{background:#f4f3f1;border-color:#dedad4;color:#655f69}
-.goScreen { max-width: 1120px; margin: 0 auto; }
-.goHero { padding: 24px; border-radius: 24px; color: #fff; background: linear-gradient(130deg,#24203e,#44377c 70%,#346d75); }
-.goEyebrow { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.08em; }
-.goEyebrow span { margin-left:auto; letter-spacing:0; font-weight:500; }
-.goHero h2 { margin:18px 0 6px; font-size:clamp(30px,6vw,45px); line-height:1.1; }
-.goHero p { margin:0 0 20px; color:#e3deef; }
-.goDayLabel { display:grid; gap:7px; font-size:12px; }
-.goDayLabel select { width:100%; min-height:48px; padding:10px 12px; border:1px solid #ffffff35; border-radius:12px; color:#fff; background:#ffffff15; }
-.goDayLabel option { color:var(--ink); background:var(--paper); }
-.goDayStatus { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; font-size:12px; }
-.goDayStatus button { border:0; background:transparent; color:#fff; text-decoration:underline; padding:8px 0; min-height:36px; }
-.goMode { display:flex; gap:6px; padding:5px; margin-top:18px; background:#e8e3ed; border-radius:14px; }
-.goMode button { display:flex; justify-content:center; align-items:center; gap:8px; flex:1; border:0; border-radius:10px; background:transparent; min-height:46px; padding:8px; font-weight:750; color:var(--muted); }
-.goMode button[aria-pressed=true] { background:var(--paper); color:var(--ink); box-shadow:0 2px 8px #17152b15; }
-.goHelp { font-size:12px; line-height:1.5; color:var(--muted); margin:12px 0; }
-.goLayout { display:grid; gap:18px; align-items:start; }
-.goMain { min-width:0; display:grid; gap:16px; }
-.goFocus,.goEmpty,.goNext,.goHotel,.goTimeline { border:1px solid var(--line); background:var(--paper); border-radius:22px; padding:22px; min-width:0; }
-.goFocus { border-top:4px solid var(--violet); box-shadow:var(--shadow); }
-.goFocus.arrived { border-top-color:var(--teal); }
-.goCardHeading { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:800; color:var(--violet); }
-.goCardHeading span:last-child { color:var(--muted); }
-.goFocus h3 { font-size:clamp(25px,6vw,34px); line-height:1.18; margin:16px 0; overflow-wrap:anywhere; }
-.goAddress { display:flex; align-items:flex-start; gap:8px; color:var(--muted); line-height:1.5; font-size:14px; }
-.goAddress svg { flex-shrink:0; margin-top:2px; }
-.goStation,.goBooking { font-size:13px; line-height:1.5; padding:12px; border-radius:12px; background:#f1eee7; }
-.goNote { font-size:14px; line-height:1.65; white-space:pre-line; }
-.goDirections { display:grid; gap:12px; margin-top:20px; }
-.goDirections label { display:grid; gap:6px; font-size:12px; color:var(--muted); }
-.goDirections select { min-height:48px; padding:10px; width:100%; border:1px solid var(--line); border-radius:12px; color:var(--ink); background:#fff; font-size:14px; text-overflow:ellipsis; }
-.goNavigate { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:12px; padding:17px; border-radius:15px; background:var(--violet); color:#fff; font-size:21px; font-weight:800; text-decoration:none; min-height:80px; }
-.goNavigate small { width:100%; text-align:center; font-weight:500; font-size:12px; opacity:.9; }
-.goSavedRoute { font-size:13px; line-height:1.5; margin:0; }
-.goActions { display:flex; flex-wrap:wrap; gap:9px; }
-.goActions button { min-height:48px; display:flex; align-items:center; justify-content:center; gap:7px; flex:1; border-radius:12px; padding:12px; font-size:13px; font-weight:700; }
-.goArrival { background:#f1eee7; border:1px solid var(--line); color:var(--ink); }
-.goComplete { background:var(--teal); border:0; color:#fff; }
-.goActions .goSkip { flex-basis:100%; min-height:42px; border:0; background:transparent; color:var(--muted); font-weight:500; }
-.goBookingLink { display:flex; align-items:center; gap:8px; font-size:13px; padding:8px 0; margin-top:10px; }
-.goNext > span,.goHotel span { font-size:11px; letter-spacing:.06em; color:var(--muted); font-weight:800; }
-.goNext h3,.goHotel h3 { font-size:18px; margin:9px 0; }
-.goNext p { color:var(--muted); font-size:13px; }
-.goNext button,.goPlanLinks button,.goUndo { background:transparent; border:0; color:var(--violet); min-height:44px; padding:8px 0; font-size:13px; text-align:left; }
-.goNext button,.goHotel a { display:flex; align-items:center; gap:8px; }
-.goHotel { display:flex; gap:14px; align-items:flex-start; }
-.goHotel > svg { flex-shrink:0; margin-top:3px; color:var(--teal); }
-.goHotel a { font-size:13px; min-height:44px; }
-.goTimelineHeader { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.goTimelineHeader h3 { margin:0; font-size:18px; }
-.goTimelineHeader > span { color:var(--muted); font-size:11px; }
-.goTimeline ol { list-style:none; padding:0; margin:18px 0; }
-.goTimeline li { border-bottom:1px solid var(--line); }
-.goTimeline li button { width:100%; display:flex; align-items:center; gap:12px; min-height:72px; padding:12px 3px; border:0; text-align:left; background:transparent; color:var(--ink); }
-.goTimeline li button:disabled { color:var(--muted); opacity:.8; }
-.goStep { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border-radius:50%; background:#eee9e0; font-size:12px; }
-.goTimeline strong { font-size:13px; line-height:1.4; display:block; }
-.goTimeline small { display:block; font-size:11px; color:var(--muted); margin-top:5px; }
-.goTimeline li.current .goStep { background:var(--violet); color:#fff; }
-.goTimeline li.done .goStep { background:#dff3ec; color:var(--teal); }
-.goPlanLinks { display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--line); margin-top:10px; padding-top:10px; }
-.goEmpty { text-align:center; }
-.goEmpty svg { color:var(--teal); }
-.goEmpty p { color:var(--muted); line-height:1.5; }
-@media (min-width: 900px) { .goLayout { grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr); } .goTimeline { position:sticky; top:18px; } }
-@media (max-width: 420px) { .goHero,.goFocus,.goEmpty,.goNext,.goHotel,.goTimeline { padding:18px; } .goCardHeading { flex-direction:column; gap:5px; } .goActions .goComplete { flex-basis:100%; } }
+                        <span>{hotel.city} · {hotel.nights} noches</span>
+                        <h4>{hotel.name}</h4>
+                        <p>{hotel.status}</p>
+                      </div>
+                      <strong>{formatMoney(hotel.price.amount, hotel.price.currency)}</strong>
+                      <small>{formatCOP(hotelExpectedCOP(hotel, state))}</small>
+                      <button className="chipButton" type="button" onClick={() => setEditingHotel(hotel)}>
+                        Editar
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="sectionTitle">
+              <h3>Compras y reservas</h3>
+              <button className="primaryAction" type="button" onClick={() => setEditingPurchase(blankPurchase())}>
+                <Plus size={16} />
+                Compra
+              </button>
+            </div>
+            <div className="purchaseGrid">
+              {state.purchases.map((purchase) => (
+                <article className={`purchaseCard ${purchase.status.toLowerCase()}`} key={purchase.id}>
+                  <div>
+                    <span>{purchase.category} · {purchase.city}</span>
+                    <h4>{purchase.name}</h4>
+                    <p>{purchase.provider}</p>
+                  </div>
+                  <strong>{formatCOP(purchase.amountCOP)}</strong>
+                  <small>{purchase.status} · {purchase.date || "sin fecha"}</small>
+                  {purchase.paymentMethodLabel ? (
+                    <small className="paymentMethodBadge">{purchase.paymentMethodLabel}</small>
+                  ) : null}
+                  <div className="actionRow">
+                    {purchase.link ? (
+                      <a className="chipButton" href={purchase.link} target="_blank" rel="noreferrer">
+                        Link
+                      </a>
+                    ) : null}
+                    {purchase.receipt.url || purchase.receipt.driveUrl ? (
+                      <a className="chipButton" href={purchase.receipt.url || purchase.receipt.driveUrl} target="_blank" rel="noreferrer">
+                        Comprobante
+                      </a>
+                    ) : null}
+                    <button className="chipButton" type="button" onClick={() => setEditingPurchase(purchase)}>
+                      Editar
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="sectionTitle reservationSectionTitle">
+              <div>
+                <h3>Qué tengo que reservar</h3>
+                <p>Solo aparecen actividades que siguen seleccionadas en Viaje.</p>
+              </div>
+            </div>
+            <div className="reservationDayList">
+              {reservationGroups.length ? reservationGroups.map((group) => (
+                <section className="reservationDayGroup" key={group.date}>
+                  <header className="reservationDayHeader">
+                    <div>
+                      <span>{group.day?.label ?? group.date}</span>
+                      <strong>{group.day?.city ?? ""}</strong>
+                    </div>
+                    <div className="reservationLoad">
+                      <b>{group.reservations.length} {group.reservations.length === 1 ? "reserva" : "reservas"}</b>
+                      {group.minutes > 0 ? <small>{compactDuration(group.minutes)} de actividades</small> : null}
+                      {group.reservations.length >= 3 || group.minutes >= 360 ? (
+                        <em>Carga alta</em>
+                      ) : null}
+                    </div>
+                  </header>
+                  <div className="reservationDayItems">
+                    {group.reservations.map((reservation, index) => {
+                      const activity = state.activities.find((item) => item.id === reservation.activityId);
+                      const duration = reservationDurationMinutes(activity);
+                      return (
+                        <article className="reservationListCard" key={reservation.id}>
+                          <div className="reservationOrdinal">{index + 1}</div>
+                          <div className="reservationListMain">
+                            <div className="reservationTitleRow">
+                              <div>
+                                <h4>{reservation.name}</h4>
+                                {activity?.description ? <p>{activity.description}</p> : null}
+                              </div>
+                              <strong>
+                                {reservation.estimatedPriceCOP > 0
+                                  ? formatCOP(reservation.estimatedPriceCOP)
+                                  : "Precio por confirmar"}
+                              </strong>
+                            </div>
+                            {reservation.bookingCheckLabel ? (
+                              <div className={`bookingRelease ${bookingUrgencyClass(reservation.bookingCheckDate, reservation.bookingConfidence)}`}>
+                                <span>
+                                  {reservation.bookingConfidence === "official"
+                                    ? "Fecha oficial"
+                                    : reservation.bookingConfidence === "estimated"
+                                      ? "Fecha para empezar a mirar"
+                                      : "Ya disponible"}
+                                </span>
+                                <b>{reservation.bookingCheckLabel}</b>
+                                {reservation.bookingCheckDate ? (
+                                  <small>{bookingCountdown(reservation.bookingCheckDate)}</small>
+                                ) : null}
+                              </div>
+                            ) : null}
+                            <div className="reservationMeta">
+                              <span>{reservation.currentStatus}</span>
+                              {!reservation.bookingCheckLabel && reservation.opens ? <span>📅 {reservation.opens}</span> : null}
+                              {duration > 0 ? <span>⏱ {compactDuration(duration)}</span> : null}
+                            </div>
+                            {reservation.reminderNotes ? (
+                              <small className="reservationNote">{reservation.reminderNotes}</small>
+                            ) : null}
+                            <div className="actionRow">
+                              {reservation.link ? (
+                                <a className="chipButton" href={reservation.link} target="_blank" rel="noreferrer">
+                                  Abrir reserva
+                                </a>
+                              ) : null}
+                              <button className="chipButton" type="button" onClick={() => setEditingReservation(reservation)}>
+                                Editar
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              )) : (
+                <div className="emptyReservationState">
+                  No hay actividades seleccionadas pendientes de reservar.
+                </div>
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        {tab === "more" ? (
+          <section className="screen moreScreen">
+            <div className="moreNav">
+              <button className={moreView === "home" ? "active" : ""} type="button" onClick={() => setMoreView("home")}>Más</button>
+              <button className={moreView === "documents" ? "active" : ""} type="button" onClick={() => setMoreView("documents")}>📄 Documentos · {docSummary.ready}/{docSummary.total}</button>
+              <button className={moreView === "readiness" ? "active" : ""} type="button" onClick={() => setMoreView("readiness")}>Antes de viajar</button>
+            </div>
+
+            {moreView === "documents" ? (
+              <DocumentsScreen documents={state.documents} hotels={state.hotels} reservations={bookableReservations} onSave={store.updateDocument} />
+            ) : moreView === "readiness" ? (
+              <DocumentsScreen mode="readiness" documents={state.documents} hotels={state.hotels} reservations={bookableReservations} onSave={store.updateDocument} />
+            ) : (
+              <>
+                <div className="moreQuickGrid">
+                  <button className="quickPanel" type="button" onClick={() => setMoreView("documents")}><span>📄 Documentos</span><strong>{docSummary.ready} listos · {docSummary.pending} pendientes</strong><small>eTA, Visit Japan Web, seguro y pasaportes</small></button>
+                  <button className="quickPanel" type="button" onClick={() => setMoreView("readiness")}><span>✅ Antes de viajar</span><strong>Checklist automático</strong><small>Documentos, hoteles, actividades y transporte</small></button>
+                </div>
+                <div className="moreGrid">
+                  <section className="panelCard optionsMovedCard">
+                    <div className="sectionTitle">
+                      <h3>Opciones del itinerario</h3>
+                    </div>
+                    <p>
+                      Las actividades opcionales ya no se administran desde una biblioteca separada.
+                      Ahora aparecen directamente debajo de cada día en <strong>También encaja aquí</strong>,
+                      según zona y cercanía.
+                    </p>
+                    <button className="primaryAction" type="button" onClick={() => setTab("trip")}>
+                      Ver opciones por día
+                    </button>
+                  </section>
+                  <section className="panelCard">
+                    <div className="sectionTitle"><h3>Inspiración</h3></div>
+                    <div className="sourceGrid">
+                      {state.sources.map((source) => (
+                        <article className="sourceCard" key={source.id}><span>{source.type}</span><h4>{source.handle || "Fuente"}</h4><p>{source.note}</p><div className="usedList">{source.associatedActivityIds.map((activityId) => { const activity = state.activities.find((item) => item.id === activityId); return activity ? <small key={activityId}>{activity.title}</small> : null; })}</div><a className="chipButton" href={source.url} target="_blank" rel="noreferrer">Abrir publicación</a></article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+                <section className="panelCard">
+                  <div className="sectionTitle"><h3>Respaldo</h3><div className="actionRow">
+                    <button className="primaryAction" type="button" onClick={store.exportBackup}><Download size={16}/>Exportar respaldo</button>
+                    <label className="primaryAction fileButton"><Upload size={16}/>Importar respaldo<input type="file" accept=".json,application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) importBackup(file); event.currentTarget.value = ""; }}/></label>
+                    <button className="ghost danger" type="button" onClick={() => { if (window.confirm("¿Restaurar el JSON base migrado y borrar cambios locales?")) store.resetToInitial(); }}>Restaurar base</button>
+                  </div></div>
+                  <div className="backupGrid"><StatCard label="Días" value={String(state.days.length)}/><StatCard label="Actividades" value={String(state.activities.length)}/><StatCard label="Zonas" value={String(state.zones.length)}/><StatCard label="Opciones por zona" value={String(state.zonePlaces.length)}/></div>
+                  <details className="migrationNotes"><summary>Notas de migración V7</summary>{state.migrationReport.knownIssues.map((issue) => <p key={issue}>{issue}</p>)}</details>
+                </section>
+              </>
+            )}
+          </section>
+        ) : null}
+      </main>
+
+      <nav className="bottomNav">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button className={tab === item.id ? "active" : ""} type="button" key={item.id} onClick={() => setTab(item.id)}>
+              <Icon size={20} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <ActivityEditor
+        open={Boolean(editingActivity)}
+        activity={editingActivity}
+        days={days}
+        sources={state.sources}
+        zones={state.zones}
+        onClose={() => setEditingActivity(null)}
+        onSave={saveActivity}
+        onDelete={(activityId) => {
+          store.deleteActivity(activityId);
+          setEditingActivity(null);
+        }}
+      />
+      <HotelEditor
+        open={Boolean(editingHotel)}
+        hotel={editingHotel}
+        onClose={() => setEditingHotel(null)}
+        onSave={store.updateHotel}
+      />
+      <PurchaseEditor
+        open={Boolean(editingPurchase)}
+        purchase={editingPurchase}
+        activities={state.activities}
+        onClose={() => setEditingPurchase(null)}
+        onSave={store.savePurchase}
+        onDelete={(purchaseId) => {
+          store.deletePurchase(purchaseId);
+          setEditingPurchase(null);
+        }}
+      />
+      <ReservationEditor
+        open={Boolean(editingReservation)}
+        reservation={editingReservation}
+        onClose={() => setEditingReservation(null)}
+        onSave={store.saveReservation}
+      />
+    </div>
+  );
+}
+
+export default App;
