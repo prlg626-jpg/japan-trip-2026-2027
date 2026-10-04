@@ -5,11 +5,8 @@ const file = path.resolve(process.cwd(), "src/data/initialTrip.json");
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const errors = [];
 
-const recoveryPartDir = path.resolve(process.cwd(), "src/data/recoveryTrip.parts");
-const recoveryRaw = ["part1.jsonfrag", "part2.jsonfrag", "part3.jsonfrag"]
-  .map((name) => fs.readFileSync(path.join(recoveryPartDir, name), "utf8"))
-  .join("\n");
-const recovery = JSON.parse(recoveryRaw);
+const recoveryFile = path.resolve(process.cwd(), "src/data/recoveryTrip.json");
+const recovery = JSON.parse(fs.readFileSync(recoveryFile, "utf8"));
 
 const byId = Object.fromEntries(data.activities.map((activity) => [activity.id, activity]));
 const hotels = Object.fromEntries(data.hotels.map((hotel) => [hotel.city, hotel]));
