@@ -64,6 +64,21 @@ export function stateSelectionFingerprint(state: TripState) {
   return selectionFingerprint(state.activities, state.zonePlaces);
 }
 
+export function comparableTrip(state: TripState): string {
+  const copy = structuredClone(state);
+  for (const name of SYNC_COLLECTIONS) {
+    (copy[name] as Array<{ id: string }>).sort((a, b) => a.id.localeCompare(b.id));
+  }
+  function stable(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(stable);
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).filter(([key, item]) => key !== "__revision" && item !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, stable(item)]));
+    }
+    return value;
+  }
+  return JSON.stringify(stable(copy));
+}
+
 export function buildSyncManifest(
   state: TripState,
   revision: string,

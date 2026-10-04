@@ -17,6 +17,7 @@ import type { ActivityBlackBox, TripState } from "../types";
 import {
   SYNC_COLLECTIONS,
   buildSyncManifest,
+  comparableTrip,
   revisionOf,
   selectionFingerprint,
   stateSelectionFingerprint,
@@ -190,7 +191,13 @@ export async function verifyTripStateFromServer(
 
   const manifest = manifestSnapshot.data() as SyncManifest;
   if (manifest.revision !== revision) {
-    throw new Error("La revisión confirmada por Firestore no coincide con la escritura actual.");
+    // Another tab may have committed an identical normalized trip while this
+    // tab was reading. Verify all content before accepting that newer receipt.
+    const latest = await readTripStateFromServer(db, state, tripId);
+    if (latest.manifest && comparableTrip(latest.state) === comparableTrip(state)) {
+      return { revision: latest.manifest.revision, verifiedAt: latest.manifest.committedAt, activityFingerprint: latest.manifest.activityFingerprint };
+    }
+    throw new Error(`Otra sesión cambió el viaje durante la verificación. Copia local conservada. Revisión enviada ${revision}; recibida ${manifest.revision}.`);
   }
 
   if (activitiesSnapshot.size !== state.activities.length) {
