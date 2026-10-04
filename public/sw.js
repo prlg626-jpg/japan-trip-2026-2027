@@ -1,4 +1,4 @@
-const CACHE_NAME = "japan-trip-2026-2027-v1";
+const CACHE_NAME = "japan-trip-2026-2027-v2";
 const APP_SHELL = ["./", "./manifest.webmanifest", "./icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
