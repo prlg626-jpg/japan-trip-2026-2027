@@ -1165,3 +1165,68 @@ a {
 .bookingRelease.soon{background:#fff3d8;border-color:#f4d59b;color:#9b5f00}
 .bookingRelease.available{background:#e8f7ef;border-color:#bfe4cf;color:#276745}
 .bookingRelease.unknown{background:#f4f3f1;border-color:#dedad4;color:#655f69}
+.goScreen { max-width: 1120px; margin: 0 auto; }
+.goHero { padding: 24px; border-radius: 24px; color: #fff; background: linear-gradient(130deg,#24203e,#44377c 70%,#346d75); }
+.goEyebrow { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.08em; }
+.goEyebrow span { margin-left:auto; letter-spacing:0; font-weight:500; }
+.goHero h2 { margin:18px 0 6px; font-size:clamp(30px,6vw,45px); line-height:1.1; }
+.goHero p { margin:0 0 20px; color:#e3deef; }
+.goDayLabel { display:grid; gap:7px; font-size:12px; }
+.goDayLabel select { width:100%; min-height:48px; padding:10px 12px; border:1px solid #ffffff35; border-radius:12px; color:#fff; background:#ffffff15; }
+.goDayLabel option { color:var(--ink); background:var(--paper); }
+.goDayStatus { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; font-size:12px; }
+.goDayStatus button { border:0; background:transparent; color:#fff; text-decoration:underline; padding:8px 0; min-height:36px; }
+.goMode { display:flex; gap:6px; padding:5px; margin-top:18px; background:#e8e3ed; border-radius:14px; }
+.goMode button { display:flex; justify-content:center; align-items:center; gap:8px; flex:1; border:0; border-radius:10px; background:transparent; min-height:46px; padding:8px; font-weight:750; color:var(--muted); }
+.goMode button[aria-pressed=true] { background:var(--paper); color:var(--ink); box-shadow:0 2px 8px #17152b15; }
+.goHelp { font-size:12px; line-height:1.5; color:var(--muted); margin:12px 0; }
+.goLayout { display:grid; gap:18px; align-items:start; }
+.goMain { min-width:0; display:grid; gap:16px; }
+.goFocus,.goEmpty,.goNext,.goHotel,.goTimeline { border:1px solid var(--line); background:var(--paper); border-radius:22px; padding:22px; min-width:0; }
+.goFocus { border-top:4px solid var(--violet); box-shadow:var(--shadow); }
+.goFocus.arrived { border-top-color:var(--teal); }
+.goCardHeading { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:800; color:var(--violet); }
+.goCardHeading span:last-child { color:var(--muted); }
+.goFocus h3 { font-size:clamp(25px,6vw,34px); line-height:1.18; margin:16px 0; overflow-wrap:anywhere; }
+.goAddress { display:flex; align-items:flex-start; gap:8px; color:var(--muted); line-height:1.5; font-size:14px; }
+.goAddress svg { flex-shrink:0; margin-top:2px; }
+.goStation,.goBooking { font-size:13px; line-height:1.5; padding:12px; border-radius:12px; background:#f1eee7; }
+.goNote { font-size:14px; line-height:1.65; white-space:pre-line; }
+.goDirections { display:grid; gap:12px; margin-top:20px; }
+.goDirections label { display:grid; gap:6px; font-size:12px; color:var(--muted); }
+.goDirections select { min-height:48px; padding:10px; width:100%; border:1px solid var(--line); border-radius:12px; color:var(--ink); background:#fff; font-size:14px; text-overflow:ellipsis; }
+.goNavigate { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:12px; padding:17px; border-radius:15px; background:var(--violet); color:#fff; font-size:21px; font-weight:800; text-decoration:none; min-height:80px; }
+.goNavigate small { width:100%; text-align:center; font-weight:500; font-size:12px; opacity:.9; }
+.goSavedRoute { font-size:13px; line-height:1.5; margin:0; }
+.goActions { display:flex; flex-wrap:wrap; gap:9px; }
+.goActions button { min-height:48px; display:flex; align-items:center; justify-content:center; gap:7px; flex:1; border-radius:12px; padding:12px; font-size:13px; font-weight:700; }
+.goArrival { background:#f1eee7; border:1px solid var(--line); color:var(--ink); }
+.goComplete { background:var(--teal); border:0; color:#fff; }
+.goActions .goSkip { flex-basis:100%; min-height:42px; border:0; background:transparent; color:var(--muted); font-weight:500; }
+.goBookingLink { display:flex; align-items:center; gap:8px; font-size:13px; padding:8px 0; margin-top:10px; }
+.goNext > span,.goHotel span { font-size:11px; letter-spacing:.06em; color:var(--muted); font-weight:800; }
+.goNext h3,.goHotel h3 { font-size:18px; margin:9px 0; }
+.goNext p { color:var(--muted); font-size:13px; }
+.goNext button,.goPlanLinks button,.goUndo { background:transparent; border:0; color:var(--violet); min-height:44px; padding:8px 0; font-size:13px; text-align:left; }
+.goNext button,.goHotel a { display:flex; align-items:center; gap:8px; }
+.goHotel { display:flex; gap:14px; align-items:flex-start; }
+.goHotel > svg { flex-shrink:0; margin-top:3px; color:var(--teal); }
+.goHotel a { font-size:13px; min-height:44px; }
+.goTimelineHeader { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.goTimelineHeader h3 { margin:0; font-size:18px; }
+.goTimelineHeader > span { color:var(--muted); font-size:11px; }
+.goTimeline ol { list-style:none; padding:0; margin:18px 0; }
+.goTimeline li { border-bottom:1px solid var(--line); }
+.goTimeline li button { width:100%; display:flex; align-items:center; gap:12px; min-height:72px; padding:12px 3px; border:0; text-align:left; background:transparent; color:var(--ink); }
+.goTimeline li button:disabled { color:var(--muted); opacity:.8; }
+.goStep { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border-radius:50%; background:#eee9e0; font-size:12px; }
+.goTimeline strong { font-size:13px; line-height:1.4; display:block; }
+.goTimeline small { display:block; font-size:11px; color:var(--muted); margin-top:5px; }
+.goTimeline li.current .goStep { background:var(--violet); color:#fff; }
+.goTimeline li.done .goStep { background:#dff3ec; color:var(--teal); }
+.goPlanLinks { display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--line); margin-top:10px; padding-top:10px; }
+.goEmpty { text-align:center; }
+.goEmpty svg { color:var(--teal); }
+.goEmpty p { color:var(--muted); line-height:1.5; }
+@media (min-width: 900px) { .goLayout { grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr); } .goTimeline { position:sticky; top:18px; } }
+@media (max-width: 420px) { .goHero,.goFocus,.goEmpty,.goNext,.goHotel,.goTimeline { padding:18px; } .goCardHeading { flex-direction:column; gap:5px; } .goActions .goComplete { flex-basis:100%; } }

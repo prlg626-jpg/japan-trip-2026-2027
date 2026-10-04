@@ -55,3 +55,5 @@ console.log('Runtime recovery tests passed: 124/121/93/80, current notes/purchas
 fs.rmSync(dir,{recursive:true,force:true});
 
 await import('./validateSync.mjs');
+
+await import('./validateOnTheGo.mjs');
