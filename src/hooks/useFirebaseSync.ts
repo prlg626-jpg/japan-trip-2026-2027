@@ -84,14 +84,31 @@ export function useFirebaseSync(
 
         const manifest = await readSyncManifestFromServer(firebase.db);
 
-        // Fresh/legacy cloud: local wins. If this browser already had saved
-        // state and its black box is newer than the committed cloud revision,
-        // local also wins (e.g. edits made while offline).
-        if (
+        // Completeness is monotonic for this trip: activities/zone places are
+        // excluded by flags, not physically deleted. Therefore a browser with
+        // fewer canonical records must never overwrite a more complete cloud.
+        const localIsAtLeastAsComplete =
           !manifest ||
+          (localState.activities.length >= manifest.counts.activities &&
+            localState.zonePlaces.length >= manifest.counts.zonePlaces);
+        const localIsMoreComplete =
+          Boolean(manifest) &&
+          localIsAtLeastAsComplete &&
+          (localState.activities.length > manifest.counts.activities ||
+            localState.zonePlaces.length > manifest.counts.zonePlaces);
+
+        // Fresh/legacy cloud: local wins. A genuinely newer persisted browser
+        // can also win, but only if it is not missing canonical trip data.
+        // A more-complete bundled recovery state (the 124-activity baseline)
+        // is allowed to repair a degraded cloud even on a fresh browser.
+        const localShouldWin =
+          !manifest ||
+          localIsMoreComplete ||
           (loadedFromLocal &&
-            blackBoxIsNewer(localState.activityBlackBox, manifest.blackBoxUpdatedAt))
-        ) {
+            localIsAtLeastAsComplete &&
+            blackBoxIsNewer(localState.activityBlackBox, manifest.blackBoxUpdatedAt));
+
+        if (localShouldWin) {
           const receipt = await writeTripState(firebase.db, localState);
           lastRemote.current = JSON.stringify(localState);
           setVerifiedAt(receipt.verifiedAt);
