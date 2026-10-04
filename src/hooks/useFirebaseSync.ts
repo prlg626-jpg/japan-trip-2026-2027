@@ -16,6 +16,10 @@ import {
   writeTripState,
 } from "../services/tripRepository";
 import { blackBoxIsNewer } from "../utils/syncProtocol";
+import {
+  CURRENT_RECOVERY_BASELINE,
+  RECOVERY_BASELINE_STORAGE_KEY,
+} from "../utils/recoveryBaseline";
 
 export type SyncStatus = "local" | "online" | "offline" | "syncing" | "verified" | "error";
 
@@ -101,8 +105,12 @@ export function useFirebaseSync(
         // can also win, but only if it is not missing canonical trip data.
         // A more-complete bundled recovery state (the 124-activity baseline)
         // is allowed to repair a degraded cloud even on a fresh browser.
+        const recoveryBaselineMissing =
+          manifest?.recoveryBaseline !== CURRENT_RECOVERY_BASELINE;
+
         const localShouldWin =
           !manifest ||
+          recoveryBaselineMissing ||
           localIsMoreComplete ||
           (loadedFromLocal &&
             localIsAtLeastAsComplete &&
@@ -111,6 +119,10 @@ export function useFirebaseSync(
         if (localShouldWin) {
           const receipt = await writeTripState(firebase.db, localState);
           lastRemote.current = JSON.stringify(localState);
+          localStorage.setItem(
+            RECOVERY_BASELINE_STORAGE_KEY,
+            CURRENT_RECOVERY_BASELINE,
+          );
           setVerifiedAt(receipt.verifiedAt);
           setStatus("verified");
           setMessage("Guardado en nube ✓");
