@@ -47,6 +47,13 @@ assert(recovery.activities.length === 124, `Recovery must contain 124 activities
 assert(recovery.activities.filter((activity) => activity.included).length === 121, `Recovery must contain 121 included activities, got ${recovery.activities.filter((activity) => activity.included).length}`);
 assert(recovery.zonePlaces.length === 93, `Recovery must contain 93 zone places, got ${recovery.zonePlaces.length}`);
 assert(recovery.zonePlaces.filter((place) => place.selected).length === 80, `Recovery must contain 80 selected zone places, got ${recovery.zonePlaces.filter((place) => place.selected).length}`);
+for (const key of ["days", "activities", "zonePlaces", "purchases", "reservations"]) {
+  assert(new Set(recovery[key].map((item) => item.id)).size === recovery[key].length, `Duplicate IDs in recovery ${key}`);
+}
+const dayIds = new Set(recovery.days.map((day) => day.id));
+assert(recovery.activities.filter((item) => item.included).every((item) => dayIds.has(item.dayId)), "Included recovery activity references an unknown day");
+assert(recovery.activities.every((item) => recovery.activityBlackBox.activityDecisions[item.id]?.included === item.included), "Recovery activity selections disagree with black box");
+assert(recovery.zonePlaces.every((item) => recovery.activityBlackBox.zoneDecisions[item.id]?.selected === item.selected), "Recovery zone selections disagree with black box");
 
 if (errors.length) {
   console.error(errors.map((error) => `- ${error}`).join("\n"));
@@ -57,6 +64,12 @@ console.log(
   JSON.stringify(
     {
       ok: true,
+      recovery: {
+        activities: recovery.activities.length,
+        included: recovery.activities.filter((item) => item.included).length,
+        zonePlaces: recovery.zonePlaces.length,
+        selected: recovery.zonePlaces.filter((item) => item.selected).length,
+      },
       days: data.days.length,
       activities: data.activities.length,
       hotels: data.hotels.length,

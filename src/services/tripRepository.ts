@@ -5,6 +5,7 @@ import {
   getDocFromServer,
   getDocsFromServer,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
   setDoc,
   writeBatch,
@@ -57,32 +58,6 @@ function sortDocuments(items: unknown[]) {
   });
 }
 
-async function replaceCollection<T extends { id: string }>(
-  db: Firestore,
-  tripId: string,
-  name: SyncCollectionName,
-  items: T[],
-  revision: string,
-) {
-  const existing = await getDocsFromServer(collectionRef(db, name, tripId));
-  const batch = writeBatch(db);
-  const wanted = new Set(items.map((item) => item.id));
-
-  existing.forEach((snapshot) => {
-    if (!wanted.has(snapshot.id)) batch.delete(snapshot.ref);
-  });
-
-  for (const item of items) {
-    batch.set(
-      doc(db, "trips", tripId, name, item.id),
-      withoutUndefined({ ...item, __revision: revision }),
-      { merge: false },
-    );
-  }
-
-  await batch.commit();
-}
-
 export async function seedTripIfNeeded(db: Firestore, user: User, state: TripState) {
   const id = tripIdFromEnv || state.trip.id;
   const ref = tripRef(db, id);
@@ -125,14 +100,12 @@ export async function saveSessionRecoverySnapshot(
   tripId = tripIdFromEnv,
 ) {
   const id = tripId || state.trip.id;
-  const snapshotRef = doc(db, "trips", id, "settings", `session-recovery-${user.uid}`);
+  const snapshotRef = doc(db, "trips", id, "settings", `session-recovery-${user.uid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const payload = withoutUndefined({
     savedAt: new Date().toISOString(),
     userId: user.uid,
     activityFingerprint: stateSelectionFingerprint(state),
-    activityBlackBox: state.activityBlackBox ?? null,
-    selectedActivities: state.activities.filter((activity) => activity.included),
-    selectedZonePlaces: state.zonePlaces.filter((place) => place.selected),
+    stateJSON: JSON.stringify(state),
   });
 
   await setDoc(snapshotRef, payload, { merge: false });
@@ -145,6 +118,9 @@ export async function saveSessionRecoverySnapshot(
   if (remote.activityFingerprint !== payload.activityFingerprint) {
     throw new Error("El respaldo remoto de la sesión no coincide con las selecciones locales.");
   }
+  if (verified.data().stateJSON !== payload.stateJSON) {
+    throw new Error("La copia completa de recuperación no coincide con el viaje original.");
+  }
 
   return verified.data();
 }
@@ -155,6 +131,40 @@ export async function readSyncManifestFromServer(
 ): Promise<SyncManifest | null> {
   const snapshot = await getDocFromServer(doc(db, "trips", tripId, "settings", "sync-manifest"));
   return snapshot.exists() ? (snapshot.data() as SyncManifest) : null;
+}
+
+export async function readTripStateFromServer(db: Firestore, fallback: TripState, tripId = tripIdFromEnv) {
+  // Query every collection, including legacy clouds without a manifest. Never
+  // assume a missing manifest means that the existing trip is empty.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const before = await readSyncManifestFromServer(db, tripId);
+    const [main, budget, blackBox, ...collections] = await Promise.all([
+      getDocFromServer(doc(db, "trips", tripId, "settings", "main")),
+      getDocFromServer(doc(db, "trips", tripId, "settings", "budget")),
+      getDocFromServer(doc(db, "trips", tripId, "settings", "activity-black-box")),
+      ...SYNC_COLLECTIONS.map((name) => getDocsFromServer(collectionRef(db, name, tripId))),
+    ]);
+    const after = await readSyncManifestFromServer(db, tripId);
+    if (before?.revision !== after?.revision) continue;
+    if (!main.exists()) throw new Error("La nube no contiene la configuración del viaje; se conserva la copia local.");
+    const state = { ...structuredClone(fallback), ...stripRevision(main.data()),
+      budget: budget.exists() ? stripRevision(budget.data()) : fallback.budget,
+      activityBlackBox: blackBox.exists() ? stripRevision(blackBox.data()) : undefined,
+    } as TripState;
+    for (let i = 0; i < SYNC_COLLECTIONS.length; i += 1) {
+      const name = SYNC_COLLECTIONS[i];
+      const rows = collections[i].docs.map((item) => item.data());
+      if (after && (rows.length !== after.counts[name] || rows.some((item) => revisionOf(item) !== after.revision))) {
+        throw new Error("La nube contiene una revisión incompleta; se conserva la copia local sin sobrescribirla.");
+      }
+      (state[name] as unknown[]) = sortDocuments(rows).map((item) => stripRevision(item as Revisioned<object>));
+    }
+    if (after && (revisionOf(main.data()) !== after.revision || !budget.exists() || revisionOf(budget.data()) !== after.revision || stateSelectionFingerprint(state) !== after.activityFingerprint)) {
+      throw new Error("La revisión remota no coincide con sus selecciones; se conserva la copia local.");
+    }
+    return { state, manifest: after };
+  }
+  throw new Error("El viaje cambió durante la lectura. Vuelve a conectar para sincronizar.");
 }
 
 export async function verifyTripStateFromServer(
@@ -236,88 +246,40 @@ export async function writeTripState(
   db: Firestore,
   state: TripState,
   tripId = tripIdFromEnv,
+  expectedRevision?: string | null,
 ): Promise<CloudSaveReceipt> {
   const id = tripId || state.trip.id;
-  const revision = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const revision = crypto.randomUUID();
+  const manifestRef = doc(db, "trips", id, "settings", "sync-manifest");
+  const expected = expectedRevision === undefined
+    ? (await readSyncManifestFromServer(db, id))?.revision ?? null
+    : expectedRevision;
+  const existing = await Promise.all(SYNC_COLLECTIONS.map((name) => getDocsFromServer(collectionRef(db, name, id))));
   const manifest = buildSyncManifest(state, revision);
+  const main = { ...state } as Record<string, unknown>;
+  for (const name of SYNC_COLLECTIONS) delete main[name];
+  delete main.budget;
+  delete main.activityBlackBox;
 
-  await setDoc(
-    tripRef(db, id),
-    {
-      id,
-      name: state.trip.displayName,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  const writes: Promise<unknown>[] = [
-    setDoc(
-      doc(db, "trips", id, "settings", "main"),
-      withoutUndefined({
-        schemaVersion: state.schemaVersion,
-        generatedAt: state.generatedAt,
-        source: state.source,
-        trip: state.trip,
-        settings: state.settings,
-        costs: state.costs,
-        hotelRoutes: state.hotelRoutes,
-        research: state.research,
-        decisions: state.decisions,
-        booked: state.booked,
-        notes: state.notes,
-        migrationReport: state.migrationReport,
-        ryokanCandidates: state.ryokanCandidates,
-        removedItems: state.removedItems,
-        __revision: revision,
-      }),
-      { merge: false },
-    ),
-    setDoc(
-      doc(db, "trips", id, "settings", "budget"),
-      withoutUndefined({ ...state.budget, __revision: revision }),
-      { merge: false },
-    ),
-    ...SYNC_COLLECTIONS.map((name) =>
-      replaceCollection(
-        db,
-        id,
-        name,
-        state[name] as Array<{ id: string }>,
-        revision,
-      ),
-    ),
-  ];
-
-  if (state.activityBlackBox) {
-    writes.push(
-      setDoc(
-        doc(db, "trips", id, "settings", "activity-black-box"),
-        withoutUndefined({ ...state.activityBlackBox, __revision: revision }),
-        { merge: false },
-      ),
-    );
-  }
-
-  await Promise.all(writes);
-
-  // This is the commit point. Listeners never accept a revision until this
-  // manifest exists and every cached document matches it.
-  await setDoc(
-    doc(db, "trips", id, "settings", "sync-manifest"),
-    withoutUndefined(manifest),
-    { merge: false },
-  );
-
-  await setDoc(
-    tripRef(db, id),
-    {
-      lastRevision: revision,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
-
+  // All collections and the commit marker change atomically. Checking the
+  // previous revision prevents two browsers from silently replacing each other.
+  await runTransaction(db, async (transaction) => {
+    const current = await transaction.get(manifestRef);
+    if ((current.exists() ? current.data().revision : null) !== expected) {
+      throw new Error("El viaje cambió en otro dispositivo. Tu copia local está conservada; vuelve a conectar antes de guardar.");
+    }
+    transaction.set(tripRef(db, id), { id, name: state.trip.displayName, lastRevision: revision, updatedAt: serverTimestamp() }, { merge: true });
+    transaction.set(doc(db, "trips", id, "settings", "main"), withoutUndefined({ ...main, __revision: revision }));
+    transaction.set(doc(db, "trips", id, "settings", "budget"), withoutUndefined({ ...state.budget, __revision: revision }));
+    if (state.activityBlackBox) transaction.set(doc(db, "trips", id, "settings", "activity-black-box"), withoutUndefined({ ...state.activityBlackBox, __revision: revision }));
+    else transaction.delete(doc(db, "trips", id, "settings", "activity-black-box"));
+    SYNC_COLLECTIONS.forEach((name, index) => {
+      const wanted = new Set(state[name].map((item) => item.id));
+      existing[index].forEach((item) => { if (!wanted.has(item.id)) transaction.delete(item.ref); });
+      for (const item of state[name]) transaction.set(doc(db, "trips", id, name, item.id), withoutUndefined({ ...item, __revision: revision }));
+    });
+    transaction.set(manifestRef, withoutUndefined(manifest));
+  });
   return verifyTripStateFromServer(db, state, revision, id);
 }
 
@@ -361,6 +323,11 @@ export function subscribeTripState(
     const blackBox = manifest.blackBoxUpdatedAt && activityBlackBoxRaw
       ? stripRevision(activityBlackBoxRaw)
       : undefined;
+    const fingerprint = selectionFingerprint(
+      (latest.activities ?? []) as TripState["activities"],
+      (latest.zonePlaces ?? []) as TripState["zonePlaces"],
+    );
+    if (fingerprint !== manifest.activityFingerprint) return;
 
     onState(
       {

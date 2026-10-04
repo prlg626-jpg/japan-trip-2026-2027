@@ -9,12 +9,14 @@ import {
   signOutGoogle,
 } from "../services/firebase";
 import {
-  readSyncManifestFromServer,
+  readTripStateFromServer,
   saveSessionRecoverySnapshot,
   seedTripIfNeeded,
   subscribeTripState,
   writeTripState,
 } from "../services/tripRepository";
+import recoveryTrip from "../data/recoveryTrip.json";
+import { recoverProtectedTrip } from "../utils/protectedRecovery";
 import { blackBoxIsNewer } from "../utils/syncProtocol";
 import {
   CURRENT_RECOVERY_BASELINE,
@@ -36,6 +38,8 @@ export function useFirebaseSync(
   const stateRef = useRef(state);
   const lastRemote = useRef("");
   const ready = useRef(false);
+  const remoteRevision = useRef<string | null>(null);
+  const syncBlocked = useRef(false);
   const saveQueue = useRef(Promise.resolve());
   const pendingLocalWrites = useRef(0);
   const latestRequested = useRef("");
@@ -46,10 +50,12 @@ export function useFirebaseSync(
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
     listenToAuth((authUser) => setUser(authUser)).then((fn) => {
-      unsubscribe = fn;
+      if (cancelled) fn();
+      else unsubscribe = fn;
     });
-    return () => unsubscribe?.();
+    return () => { cancelled = true; unsubscribe?.(); };
   }, []);
 
   useEffect(() => {
@@ -72,6 +78,7 @@ export function useFirebaseSync(
     let unsubscribe = () => {};
     let cancelled = false;
     ready.current = false;
+    syncBlocked.current = false;
     setStatus("syncing");
     setMessage("Protegiendo la sesión actual…");
 
@@ -85,44 +92,36 @@ export function useFirebaseSync(
         // accepted. This is the emergency recovery copy for this device/session.
         await seedTripIfNeeded(firebase.db, user, localState);
         await saveSessionRecoverySnapshot(firebase.db, user, localState);
+        if (cancelled) return;
 
-        const manifest = await readSyncManifestFromServer(firebase.db);
-
-        // Completeness is monotonic for this trip: activities/zone places are
-        // excluded by flags, not physically deleted. Therefore a browser with
-        // fewer canonical records must never overwrite a more complete cloud.
+        const remote = await readTripStateFromServer(firebase.db, localState);
+        if (cancelled) return;
+        const manifest = remote.manifest;
+        remoteRevision.current = manifest?.revision ?? null;
+        const cloudState = remote.state;
         const localIsAtLeastAsComplete =
-          !manifest ||
-          (localState.activities.length >= manifest.counts.activities &&
-            localState.zonePlaces.length >= manifest.counts.zonePlaces);
-        const localIsMoreComplete =
-          Boolean(manifest) &&
-          localIsAtLeastAsComplete &&
-          (localState.activities.length > manifest.counts.activities ||
-            localState.zonePlaces.length > manifest.counts.zonePlaces);
-
-        // Fresh/legacy cloud: local wins. A genuinely newer persisted browser
-        // can also win, but only if it is not missing canonical trip data.
-        // A more-complete bundled recovery state (the 124-activity baseline)
-        // is allowed to repair a degraded cloud even on a fresh browser.
-        const recoveryBaselineMissing =
-          manifest?.recoveryBaseline !== CURRENT_RECOVERY_BASELINE;
-
-        const localShouldWin =
-          !manifest ||
-          recoveryBaselineMissing ||
-          localIsMoreComplete ||
-          (loadedFromLocal &&
-            localIsAtLeastAsComplete &&
-            blackBoxIsNewer(localState.activityBlackBox, manifest.blackBoxUpdatedAt));
-
-        if (localShouldWin) {
-          const receipt = await writeTripState(firebase.db, localState);
-          lastRemote.current = JSON.stringify(localState);
-          localStorage.setItem(
-            RECOVERY_BASELINE_STORAGE_KEY,
-            CURRENT_RECOVERY_BASELINE,
+          localState.activities.length >= cloudState.activities.length &&
+          localState.zonePlaces.length >= cloudState.zonePlaces.length;
+        const localShouldWin = loadedFromLocal && localIsAtLeastAsComplete &&
+          blackBoxIsNewer(localState.activityBlackBox, cloudState.activityBlackBox?.updatedAt);
+        let chosen = localShouldWin ? localState : cloudState;
+        const recoveryBaselineMissing = manifest?.recoveryBaseline !== CURRENT_RECOVERY_BASELINE;
+        const cloudNeedsRecords = chosen.activities.length < 124 || chosen.zonePlaces.length < 93;
+        if (recoveryBaselineMissing || cloudNeedsRecords) {
+          // Keep a full, immutable remote snapshot before repairing the cloud.
+          await saveSessionRecoverySnapshot(firebase.db, user, cloudState);
+          const lostSelections = recoveryBaselineMissing && (
+            chosen.activities.filter((item) => item.included).length < 121 ||
+            chosen.zonePlaces.filter((item) => item.selected).length < 80
           );
+          chosen = recoverProtectedTrip(chosen, recoveryTrip as TripState, lostSelections);
+        }
+        if (cancelled) return;
+        if (localShouldWin || recoveryBaselineMissing || cloudNeedsRecords) {
+          const receipt = await writeTripState(firebase.db, chosen, undefined, remoteRevision.current);
+          remoteRevision.current = receipt.revision;
+          lastRemote.current = JSON.stringify(chosen);
+          replaceState(chosen);
           setVerifiedAt(receipt.verifiedAt);
           setStatus("verified");
           setMessage("Guardado en nube ✓");
@@ -132,9 +131,9 @@ export function useFirebaseSync(
 
         unsubscribe = subscribeTripState(
           firebase.db,
-          localState,
+          chosen,
           (remoteState, _pendingWrites, committedManifest) => {
-            if (cancelled) return;
+            if (cancelled || syncBlocked.current) return;
 
             ready.current = true;
 
@@ -142,8 +141,10 @@ export function useFirebaseSync(
             // user edits that are still queued for server verification.
             if (pendingLocalWrites.current > 0) return;
 
+            remoteRevision.current = committedManifest.revision;
             const serialized = JSON.stringify(remoteState);
             lastRemote.current = serialized;
+            localStorage.setItem(RECOVERY_BASELINE_STORAGE_KEY, CURRENT_RECOVERY_BASELINE);
             replaceState(remoteState);
             setVerifiedAt(committedManifest.committedAt);
             setStatus(navigator.onLine ? "verified" : "offline");
@@ -152,6 +153,7 @@ export function useFirebaseSync(
         );
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error(error);
         setStatus("error");
         setMessage(error instanceof Error ? error.message : "Error de sincronización");
@@ -164,7 +166,7 @@ export function useFirebaseSync(
   }, [user, loadedFromLocal, replaceState]);
 
   useEffect(() => {
-    if (!user || !firebaseConfigured() || !ready.current) return;
+    if (!user || !firebaseConfigured() || !ready.current || syncBlocked.current) return;
 
     const serialized = JSON.stringify(state);
     if (serialized === lastRemote.current) return;
@@ -182,7 +184,9 @@ export function useFirebaseSync(
         const firebase = await getFirebaseServices();
         if (!firebase) throw new Error("Firebase no está disponible.");
 
-        const receipt = await writeTripState(firebase.db, snapshot);
+        if (syncBlocked.current) throw new Error("Sincronización detenida; tu copia local está conservada.");
+        const receipt = await writeTripState(firebase.db, snapshot, undefined, remoteRevision.current);
+        remoteRevision.current = receipt.revision;
         lastRemote.current = serialized;
 
         if (latestRequested.current === serialized) {
@@ -195,6 +199,8 @@ export function useFirebaseSync(
         }
       })
       .catch((error) => {
+        syncBlocked.current = true;
+        ready.current = false;
         console.error(error);
         if (latestRequested.current === serialized) {
           setStatus("error");
@@ -216,7 +222,13 @@ export function useFirebaseSync(
     status,
     message,
     verifiedAt,
-    signIn: signInWithGoogle,
+    signIn: async () => {
+      try { await signInWithGoogle(); }
+      catch (error) {
+        setStatus("error");
+        setMessage(error instanceof Error ? error.message : "No se pudo iniciar sesión con Google.");
+      }
+    },
     signOut: signOutGoogle,
   };
 }

@@ -44,6 +44,7 @@ import {
   CURRENT_RECOVERY_BASELINE,
   RECOVERY_BASELINE_STORAGE_KEY,
 } from "../utils/recoveryBaseline";
+import { recoverProtectedTrip } from "../utils/protectedRecovery";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -71,7 +72,17 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const clarified = applyReservationPlanningCopy(priced);
   const confirmedPurchases = applyConfirmedKlookPurchasesV1(clarified);
   const withPaymentMethods = applyPaymentMethodRegister(confirmedPurchases.state);
-  const cleaned = cleanState(withPaymentMethods);
+  // Recommendations may update metadata, but cannot delete or deselect the
+  // protected input. In particular the NYE cleanup removed a selected record.
+  const cleaned = cleanState(recoverProtectedTrip(withPaymentMethods, state, false));
+  const activityFlags = new Map(state.activities.map((item) => [item.id, item.included]));
+  const placeFlags = new Map(state.zonePlaces.map((item) => [item.id, item.selected]));
+  cleaned.activities.forEach((item) => {
+    if (activityFlags.has(item.id)) item.included = activityFlags.get(item.id)!;
+  });
+  cleaned.zonePlaces.forEach((item) => {
+    if (placeFlags.has(item.id)) item.selected = placeFlags.get(item.id)!;
+  });
   const migrationChangedSelections =
     balanceMigration.migrated ||
     dinnerCleanup.migrated ||
@@ -90,13 +101,15 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
       ? { ...refreshedBlackBox, updatedAt: previousUpdatedAt }
       : refreshedBlackBox;
   } else {
-    cleaned.activityBlackBox =
-      existingBlackBox ?? cleaned.activityBlackBox ?? captureActivityBlackBox(cleaned);
+    cleaned.activityBlackBox = {
+      ...captureActivityBlackBox(cleaned),
+      updatedAt: existingBlackBox?.updatedAt ?? state.activityBlackBox?.updatedAt ?? "",
+    };
   }
   return cleaned;
 }
 
-function loadInitialState(): TripState {
+export function loadInitialState(): TripState {
   const protectedRecovery = migrateStoredState(
     structuredClone(recoveryTrip as TripState),
   );
@@ -105,33 +118,29 @@ function loadInitialState(): TripState {
     const recoveryApplied =
       localStorage.getItem(RECOVERY_BASELINE_STORAGE_KEY) ===
       CURRENT_RECOVERY_BASELINE;
-    if (!recoveryApplied) {
-      const recovered = withRuntimeEnrichment(protectedRecovery);
-      localStorage.setItem(
-        RECOVERY_BASELINE_STORAGE_KEY,
-        CURRENT_RECOVERY_BASELINE,
-      );
-      return finalizeProtectedState(
-        recovered,
-        protectedRecovery.activityBlackBox,
-      );
-    }
-
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
+      // Preserve the entire previous state before any recovery/migration.
+      if (!recoveryApplied && !localStorage.getItem(`${STORAGE_KEY}-before-recovery`)) {
+        localStorage.setItem(`${STORAGE_KEY}-before-recovery`, saved);
+      }
       const stored = migrateStoredState(JSON.parse(saved) as TripState);
       const canonicalDataIsIncomplete =
         stored.activities.length < protectedRecovery.activities.length ||
         stored.zonePlaces.length < protectedRecovery.zonePlaces.length;
 
-      if (canonicalDataIsIncomplete) {
+      const lostSelections = !recoveryApplied && (
+        stored.activities.filter((item) => item.included).length < 121 ||
+        stored.zonePlaces.filter((item) => item.selected).length < 80
+      );
+      if (canonicalDataIsIncomplete || lostSelections) {
         console.warn(
           "Incomplete local trip state detected; restoring protected 124-activity baseline.",
         );
-        const recovered = withRuntimeEnrichment(protectedRecovery);
+        const recovered = withRuntimeEnrichment(recoverProtectedTrip(stored, protectedRecovery, lostSelections));
         return finalizeProtectedState(
           recovered,
-          protectedRecovery.activityBlackBox,
+          recovered.activityBlackBox,
         );
       }
 
@@ -270,14 +279,15 @@ export function useTripStore() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     writeLocalActivityBlackBox(state);
+    // Mark recovery only after the recovered state is durably saved.
+    localStorage.setItem(RECOVERY_BASELINE_STORAGE_KEY, CURRENT_RECOVERY_BASELINE);
   }, [state]);
 
   const replaceState = useCallback((next: TripState) => {
     const enriched = withRuntimeEnrichment(next);
-    const blackBox = newestActivityBlackBox(
-      next.activityBlackBox,
-      readLocalActivityBlackBox(),
-    );
+    // Sync already chose the winning revision. A stale device black box must
+    // never resurrect selections over that authoritative remote state.
+    const blackBox = next.activityBlackBox;
     const restored = restoreActivityBlackBox(enriched, blackBox);
     restored.activityBlackBox = blackBox ?? captureActivityBlackBox(restored);
     setState(finalizeProtectedState(restored, blackBox));
