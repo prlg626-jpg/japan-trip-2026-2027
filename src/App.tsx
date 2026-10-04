@@ -81,7 +81,7 @@ import "./styles.css";
 type Tab = "go" | "today" | "trip" | "map" | "money" | "more";
 
 const navItems: Array<{ id: Tab; label: string; icon: typeof Home }> = [
-  { id: "go", label: "En viaje", icon: Navigation },
+  { id: "today", label: "Hoy", icon: Home },
   { id: "trip", label: "Viaje", icon: CalendarDays },
   { id: "map", label: "Mapa", icon: MapIcon },
   { id: "money", label: "Dinero", icon: Coins },
@@ -364,7 +364,7 @@ function App() {
   const sync = useFirebaseSync(state, store.replaceState, store.loadedFromLocal);
   const days = useMemo(() => sortedDays(state), [state]);
   const initialDay = useMemo(() => nextTravelDay(state), [state]);
-  const [tab, setTab] = useState<Tab>("go");
+  const [tab, setTab] = useState<Tab>("trip");
   const [selectedDayId, setSelectedDayId] = useState(initialDay.id);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
@@ -512,6 +512,17 @@ function App() {
           </div>
           <div className="topActions">
             <SyncPill status={sync.status} configured={sync.configured} message={sync.message} verifiedAt={sync.verifiedAt} />
+            {tab === "go" ? (
+              <button className="ghost" type="button" onClick={() => setTab("trip")}>
+                <CalendarDays size={16} />
+                Volver a planificación
+              </button>
+            ) : (
+              <button className="primaryAction" type="button" onClick={() => setTab("go")}>
+                <Navigation size={16} />
+                Activar modo viaje
+              </button>
+            )}
             {sync.configured ? (
               sync.user ? (
                 <button className="ghost" type="button" onClick={sync.signOut}>
