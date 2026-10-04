@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import recoveryTrip from "../data/recoveryTrip";
+import recoveryTrip from "../data/recoveryTrip.json";
 import type {
   Activity,
   BudgetCategory,
