@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import initialTrip from "../data/initialTrip.json";
+import recoveryTrip from "../data/recoveryTrip";
 import type {
   Activity,
   BudgetCategory,
@@ -93,10 +93,29 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
 }
 
 function loadInitialState(): TripState {
+  const protectedRecovery = migrateStoredState(
+    structuredClone(recoveryTrip as TripState),
+  );
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const stored = migrateStoredState(JSON.parse(saved) as TripState);
+      const canonicalDataIsIncomplete =
+        stored.activities.length < protectedRecovery.activities.length ||
+        stored.zonePlaces.length < protectedRecovery.zonePlaces.length;
+
+      if (canonicalDataIsIncomplete) {
+        console.warn(
+          "Incomplete local trip state detected; restoring protected 124-activity baseline.",
+        );
+        const recovered = withRuntimeEnrichment(protectedRecovery);
+        return finalizeProtectedState(
+          recovered,
+          protectedRecovery.activityBlackBox,
+        );
+      }
+
       const enriched = withRuntimeEnrichment(stored);
       const blackBox = newestActivityBlackBox(
         stored.activityBlackBox,
@@ -109,8 +128,9 @@ function loadInitialState(): TripState {
   } catch (error) {
     console.warn("Could not load local trip state", error);
   }
-  const fresh = withRuntimeEnrichment(structuredClone(initialTrip as TripState));
-  return finalizeProtectedState(fresh);
+
+  const fresh = withRuntimeEnrichment(protectedRecovery);
+  return finalizeProtectedState(fresh, protectedRecovery.activityBlackBox);
 }
 
 function uid(prefix: string) {
