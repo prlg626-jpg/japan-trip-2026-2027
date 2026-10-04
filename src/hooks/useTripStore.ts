@@ -107,6 +107,10 @@ function loadInitialState(): TripState {
       CURRENT_RECOVERY_BASELINE;
     if (!recoveryApplied) {
       const recovered = withRuntimeEnrichment(protectedRecovery);
+      localStorage.setItem(
+        RECOVERY_BASELINE_STORAGE_KEY,
+        CURRENT_RECOVERY_BASELINE,
+      );
       return finalizeProtectedState(
         recovered,
         protectedRecovery.activityBlackBox,
