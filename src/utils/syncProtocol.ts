@@ -1,4 +1,5 @@
 import type { Activity, ActivityBlackBox, TripState, ZonePlace } from "../types";
+import { CURRENT_RECOVERY_BASELINE } from "./recoveryBaseline";
 
 export const SYNC_COLLECTIONS = [
   "days",
@@ -23,6 +24,7 @@ export interface SyncManifest {
   counts: Record<SyncCollectionName, number>;
   activityFingerprint: string;
   blackBoxUpdatedAt: string;
+  recoveryBaseline?: string;
 }
 
 export type Revisioned<T> = T & { __revision?: string };
@@ -86,6 +88,7 @@ export function buildSyncManifest(
     },
     activityFingerprint: stateSelectionFingerprint(state),
     blackBoxUpdatedAt: state.activityBlackBox?.updatedAt ?? "",
+    recoveryBaseline: CURRENT_RECOVERY_BASELINE,
   };
 }
 
