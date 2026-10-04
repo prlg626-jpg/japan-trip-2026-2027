@@ -5,6 +5,12 @@ const file = path.resolve(process.cwd(), "src/data/initialTrip.json");
 const data = JSON.parse(fs.readFileSync(file, "utf8"));
 const errors = [];
 
+const recoveryPartDir = path.resolve(process.cwd(), "src/data/recoveryTrip.parts");
+const recoveryRaw = ["part1.jsonfrag", "part2.jsonfrag", "part3.jsonfrag"]
+  .map((name) => fs.readFileSync(path.join(recoveryPartDir, name), "utf8"))
+  .join("\n");
+const recovery = JSON.parse(recoveryRaw);
+
 const byId = Object.fromEntries(data.activities.map((activity) => [activity.id, activity]));
 const hotels = Object.fromEntries(data.hotels.map((hotel) => [hotel.city, hotel]));
 const purchasesTotal = data.purchases
@@ -39,6 +45,11 @@ assert(data.sources.some((source) => source.url.includes("tiktok.com") || source
 assert(data.sources.some((source) => source.url.includes("instagram.com")), "Missing Instagram sources");
 assert(data.library.length === 22, `Expected 22 library items, got ${data.library.length}`);
 assert(data.costs.length === 21, `Expected 21 cost items, got ${data.costs.length}`);
+
+assert(recovery.activities.length === 124, `Recovery must contain 124 activities, got ${recovery.activities.length}`);
+assert(recovery.activities.filter((activity) => activity.included).length === 121, `Recovery must contain 121 included activities, got ${recovery.activities.filter((activity) => activity.included).length}`);
+assert(recovery.zonePlaces.length === 93, `Recovery must contain 93 zone places, got ${recovery.zonePlaces.length}`);
+assert(recovery.zonePlaces.filter((place) => place.selected).length === 80, `Recovery must contain 80 selected zone places, got ${recovery.zonePlaces.filter((place) => place.selected).length}`);
 
 if (errors.length) {
   console.error(errors.map((error) => `- ${error}`).join("\n"));
