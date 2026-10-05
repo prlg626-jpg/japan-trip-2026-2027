@@ -28,11 +28,11 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
   },
   "d27-usj": {
     activityId: "d27-usj",
-    checkDate: "2026-10-27",
-    label: "27 oct · venta oficial 2 meses antes",
-    confidence: "official",
+    checkDate: "2026-10-26",
+    label: "26 oct · volver a revisar disponibilidad para 27 dic",
+    confidence: "estimated",
     sourceUrl: "https://www.usj.co.jp/web/ja/jp/tickets/buy/howto",
-    note: "USJ indica que la venta normalmente comienza 2 meses antes de la fecha de visita.",
+    note: "Observación real del 5 oct 2026: el calendario de USJ llegaba hasta el 6 dic. Para la visita del 27 dic faltaban 21 días de calendario por abrir; si la ventana avanza al mismo ritmo, conviene revisar de nuevo el 26 oct y, si aún no aparece, el 27 oct.",
   },
   "v7-28-pokecafe": {
     activityId: "v7-28-pokecafe",
