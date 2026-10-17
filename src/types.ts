@@ -247,6 +247,8 @@ export interface Zone {
 }
 
 export interface ZonePlace {
+  /** Explicit compatible days, when a suggestion must not spill into nearby days. */
+  suggestionDayIds?: string[];
   id: string;
   zoneId: string;
   title: string;

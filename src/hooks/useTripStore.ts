@@ -45,6 +45,7 @@ import {
   RECOVERY_BASELINE_STORAGE_KEY,
 } from "../utils/recoveryBaseline";
 import { recoverProtectedTrip } from "../utils/protectedRecovery";
+import { applyPerfumePlan2027 } from "../utils/perfumePlan2027";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -74,7 +75,7 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const withPaymentMethods = applyPaymentMethodRegister(confirmedPurchases.state);
   // Recommendations may update metadata, but cannot delete or deselect the
   // protected input. In particular the NYE cleanup removed a selected record.
-  const cleaned = cleanState(recoverProtectedTrip(withPaymentMethods, state, false));
+  const cleaned = syncMoneyPage(applyPerfumePlan2027(cleanState(recoverProtectedTrip(withPaymentMethods, state, false))));
   const activityFlags = new Map(state.activities.map((item) => [item.id, item.included]));
   const placeFlags = new Map(state.zonePlaces.map((item) => [item.id, item.selected]));
   cleaned.activities.forEach((item) => {

@@ -18,7 +18,7 @@ globalThis.localStorage = { getItem: k => values.get(k) ?? null, setItem: (k, v)
 const counts = s => [s.activities.length, s.activities.filter(a => a.included).length, s.zonePlaces.length, s.zonePlaces.filter(p => p.selected).length];
 values = new Map();
 const fresh = loadInitialState();
-assert.deepEqual(counts(fresh), [124,121,93,80], 'runtime migrations must preserve protected totals');
+assert.deepEqual(counts(fresh), [124,121,110,80], 'runtime migrations must preserve protected totals');
 assert.equal(values.get(marker), undefined, 'initial render must not prematurely mark durable recovery');
 const recent = structuredClone(fresh);
 recent.activities[0].note = 'Latest user note';
@@ -36,7 +36,7 @@ legacy.activities = legacy.activities.slice(0,61);
 legacy.zonePlaces.forEach(p=>p.selected=false);
 values = new Map([[key,JSON.stringify(legacy)]]);
 loaded = loadInitialState();
-assert.deepEqual(counts(loaded),[124,121,93,80]);
+assert.deepEqual(counts(loaded),[124,121,110,80]);
 assert.ok(loaded.purchases.some(p=>p.id==='test-new-purchase'),'repair keeps later purchases');
 const edited = structuredClone(fresh);
 edited.activities.find(a=>a.included).included=false;
@@ -44,16 +44,18 @@ edited.zonePlaces.find(p=>p.selected).selected=false;
 edited.activityBlackBox = undefined;
 values = new Map([[key,JSON.stringify(edited)],[marker,'protected-124-2026-09-27']]);
 loaded=loadInitialState();
-assert.deepEqual(counts(loaded),[124,120,93,79],'completed recovery must respect subsequent user choices');
+assert.deepEqual(counts(loaded),[124,120,110,79],'completed recovery must respect subsequent user choices');
 const repaired = recoverProtectedTrip(legacy,baseline,true);
-assert.deepEqual(counts(repaired),[124,121,93,80]);
+assert.deepEqual(counts(repaired),[124,121,110,80]);
 assert.equal(legacy.activities.length,61,'repair never mutates its source');
 assert.equal(stateSelectionFingerprint(recoverProtectedTrip(repaired,baseline,true)),stateSelectionFingerprint(repaired),'repair is idempotent');
 const custom=structuredClone(recent); custom.activities.push({...custom.activities[0],id:'custom-new',included:true});
 assert.equal(recoverProtectedTrip(custom,baseline,true).activities.length,125,'custom records survive recovery');
-console.log('Runtime recovery tests passed: 124/121/93/80, current notes/purchases/custom items, durable marker, legacy repair, idempotence, and later user decisions.');
+console.log('Runtime recovery tests passed: 124/121/110/80, current notes/purchases/custom items, durable marker, legacy repair, idempotence, and later user decisions.');
 fs.rmSync(dir,{recursive:true,force:true});
 
 await import('./validateSync.mjs');
 
 await import('./validateOnTheGo.mjs');
+
+await import('./validatePerfumePlan.mjs');

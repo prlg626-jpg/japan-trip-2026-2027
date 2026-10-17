@@ -100,11 +100,10 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
   },
   "v7-5-perfume": {
     activityId: "v7-5-perfume",
-    checkDate: "2026-12-22",
-    label: "22 dic · 00:00 Japón / 21 dic 10:00 Bogotá",
-    confidence: "official",
-    sourceUrl: "https://annfragrance.com/en/pages/atelier-ann",
-    note: "Atelier ann abre cada fecha exactamente 14 días antes a las 00:00 JST.",
+    label: "5 ene 2027 · 11:00 deseada · cupos aún no publicados",
+    confidence: "estimated",
+    sourceUrl: "https://select-type.com/rsv/?c_id=307118&id=Sm2YMCAHYUc&pv_flg=1",
+    note: "Consultado el 17 oct 2026 (Bogotá): Standard muestra enero de 2027, pero el día 5 no es seleccionable y no ofrece horarios. No se confirma cupo a las 11:00 ni en la mañana; tampoco se interpreta como agotado. Sin regla oficial de apertura verificada. Una reserva permite hasta 2 personas. Reserva y pago pendientes.",
   },
   "v7-6-ring": {
     activityId: "v7-6-ring",

@@ -74,10 +74,10 @@ export function candidateZonePlacesForDay(state: TripState, dayId: string): Zone
   const dayZoneIds = new Set(day.zoneIds ?? []);
 
   const ranked = state.zonePlaces
-    .filter((place) => !place.selected)
+    .filter((place) => !place.selected && (!place.suggestionDayIds || place.suggestionDayIds.includes(dayId)))
     .map((place) => {
       const zone = zoneById.get(place.zoneId);
-      const explicitDay = place.suggestedDayId === dayId;
+      const explicitDay = place.suggestedDayId === dayId || Boolean(place.suggestionDayIds?.includes(dayId));
       const dayZone = dayZoneIds.has(place.zoneId);
       const recommendedDay = Boolean(zone?.recommendedDayIds.includes(dayId));
 

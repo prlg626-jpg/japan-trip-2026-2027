@@ -99,20 +99,6 @@ export function applyReservationPlanningCopy(input: TripState): TripState {
     priceDynamic: false,
   });
 
-  patchActivity(state, "v7-5-perfume", {
-    title: "Atelier ann Omotesando · crear fragancia",
-    description:
-      "Experiencia de 50 minutos para elegir cinco aromas, mezclarlos con el perfumista y crear un Fabric Mist personalizado de 50 ml.",
-    estimatedDurationMinutes: 50,
-    recommendedVisitMinutes: 50,
-    priceScope: "per_person",
-    priceOriginal: { currency: "JPY", unit: 6050, quantity: 1 },
-    priceLabel: "¥6.050 por persona · ¥12.100 para los dos",
-    priceVerifiedAt: "2026-09-27",
-    priceSourceUrl: "https://annfragrance.com/en/pages/atelier-ann",
-    priceDynamic: false,
-  });
-
   return state;
 }
 
