@@ -1,4 +1,5 @@
 import type { Activity, Hotel, RouteSegment, ZonePlace } from "../types";
+import { mealRecommendationFor } from "./mealRecommendations";
 
 type Point = { id: string; title: string; lat: number | null; lon: number | null; type: "hotel" | "activity" | "zonePlace" };
 
@@ -49,7 +50,10 @@ export function buildDayRoute(dayId: string, hotel: Hotel | null, activities: Ac
   activities
     .filter(routeEligible)
     .sort((a, b) => a.order - b.order)
-    .forEach((a) => points.push({ id: a.id, title: a.title, lat: a.lat, lon: a.lon, type: "activity" }));
+    .forEach((a) => {
+      const meal = mealRecommendationFor(a);
+      points.push({ id: a.id, title: meal ? `${meal.name}, ${meal.address}` : a.title, lat: meal ? null : a.lat, lon: meal ? null : a.lon, type: "activity" });
+    });
 
   // Legacy zone selections remain supported until they are materialized as cards.
   selectedPlaces.forEach((p) => {
@@ -61,8 +65,9 @@ export function buildDayRoute(dayId: string, hotel: Hotel | null, activities: Ac
   const segments: RouteSegment[] = [];
   for (let i = 0; i < points.length - 1; i += 1) {
     const from = points[i]; const to = points[i + 1];
+    const proposedMeal = activities.some(a => (a.id === from.id || a.id === to.id) && Boolean(mealRecommendationFor(a)));
     const exact = curated.find((s) => s.dayId === dayId && s.fromId === from.id && s.toId === to.id);
-    segments.push(exact ?? estimateSegment(dayId, from, to));
+    segments.push(exact && (exact.userOverride || !proposedMeal) ? exact : estimateSegment(dayId, from, to));
   }
   return { points, segments };
 }

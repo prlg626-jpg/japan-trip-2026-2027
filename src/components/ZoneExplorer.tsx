@@ -3,6 +3,8 @@ import { ExternalLink, MapPin } from "lucide-react";
 import type { MoneyOriginal, Zone, ZonePlace } from "../types";
 import { visualGroupForZonePlace } from "../utils/itineraryIntelligence";
 import "../v8.css";
+import { MealRecommendationCard } from "./MealRecommendationCard";
+import { mealRecommendationFor } from "../utils/mealRecommendations";
 
 const categoryNames: Record<string, string> = {
   explore: "Paseo / barrio",
@@ -57,24 +59,25 @@ export function ZoneExplorer({
   places,
   onAdd,
   dayLabel,
+  dayId,
 }: {
   zones: Zone[];
   places: ZonePlace[];
   onAdd: (place: ZonePlace) => void;
   dayLabel: string;
+  dayId: string;
 }) {
   const [filter, setFilter] = useState("all");
-  const [zoneId, setZoneId] = useState(zones[0]?.id ?? "all");
+  const defaultZoneId = dayId === "2027-01-07" ? zones[0]?.id ?? "all" : "all";
+  const [zoneId, setZoneId] = useState(defaultZoneId);
   const zoneKey = zones.map((zone) => zone.id).join("|");
 
   useEffect(() => {
-    if (!zones.some((zone) => zone.id === zoneId)) {
-      setZoneId(zones[0]?.id ?? "all");
-    }
+    setZoneId(defaultZoneId);
     setFilter("all");
-  }, [zoneKey]);
+  }, [zoneKey, dayId]);
 
-  const activeZone = zones.find((zone) => zone.id === zoneId) ?? zones[0];
+  const activeZone = zoneId === "all" ? undefined : zones.find((zone) => zone.id === zoneId);
   const zonePlaces = places.filter(
     (place) => !activeZone || place.zoneId === activeZone.id,
   );
@@ -89,7 +92,7 @@ export function ZoneExplorer({
       (filter === "essential" && place.priorityRank === "essential"),
   );
 
-  if (!zones.length || !places.length) return null;
+  if (!places.length) return null;
 
   return (
     <section className="zoneExplorer candidateExplorer">
@@ -103,6 +106,7 @@ export function ZoneExplorer({
         </p>
         {zones.length > 1 ? (
           <div className="zoneSelector">
+            {dayId !== "2027-01-07" ? <button type="button" className={zoneId === "all" ? "active" : ""} onClick={() => setZoneId("all")}>Todas las zonas ({places.length})</button> : null}
             {zones.map((zone) => (
               <button
                 type="button"
@@ -164,6 +168,7 @@ export function ZoneExplorer({
             <p className="placeDescription">
               <strong>Qué es:</strong> {place.description}
             </p>
+            <MealRecommendationCard recommendation={mealRecommendationFor(place, dayId)} />
             <div className="placeMeta">
               {place.nearestStation ? <span>🚉 {place.nearestStation}</span> : null}
               <span>

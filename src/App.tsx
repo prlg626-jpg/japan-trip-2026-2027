@@ -43,6 +43,8 @@ import { ActivityEditor } from "./components/ActivityEditor";
 import { HotelEditor } from "./components/HotelEditor";
 import { HotelLinkCard } from "./components/HotelLinkCard";
 import { ZoneExplorer } from "./components/ZoneExplorer";
+import { MealRecommendationCard } from "./components/MealRecommendationCard";
+import { mealRecommendationFor } from "./utils/mealRecommendations";
 import { RouteSummary } from "./components/RouteSummary";
 import { RyokanComparison } from "./components/RyokanComparison";
 import { DocumentsScreen } from "./components/DocumentsScreen";
@@ -279,6 +281,7 @@ function SortableActivityCard({
           {estimate > 0 ? <span>{formatCOP(estimate)}</span> : null}
         </div>
         {activity.description ? <p className="activityDescription">{activity.description}</p> : null}
+        <MealRecommendationCard recommendation={mealRecommendationFor(activity)} />
         {activity.priceLabel ? <p className="priceScopeText">{activity.priceLabel}{activity.priceDynamic ? " · precio dinámico" : ""}</p> : null}
         {activity.holidayNote ? <p className="warningText">⚠ {activity.holidayNote}</p> : null}
         {activity.note && activity.note !== activity.description ? <p className="noteText">{activity.note}</p> : null}
@@ -717,6 +720,7 @@ function App() {
                     zones={candidateZones}
                     places={candidatePlaces}
                     dayLabel={selectedDay.label}
+                    dayId={selectedDay.id}
                     onAdd={(place) => store.setZonePlaceForDay(place, selectedDay.id, true)}
                   />
                   {selectedDay.id === "2027-01-01" ? <RyokanComparison candidates={state.ryokanCandidates} /> : null}

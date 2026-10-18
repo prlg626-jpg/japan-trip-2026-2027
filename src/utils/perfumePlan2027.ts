@@ -54,6 +54,12 @@ function optionPlace(option: PerfumeOption, index: number): ZonePlace {
   };
 }
 
+// Read-time catalogue also works for live trips which have not persisted the
+// migration yet. Selections still come exclusively from the user's live state.
+export function perfumeSuggestionPlaces(): ZonePlace[] {
+  return PERFUME_OPTIONS.map(optionPlace);
+}
+
 /** Apply only to the state chosen by sync, never by importing a replacement seed.
  * The durable marker makes later edits, deletions and selections authoritative.
  * No purchases, receipts, unrelated days or decision timestamps are changed.

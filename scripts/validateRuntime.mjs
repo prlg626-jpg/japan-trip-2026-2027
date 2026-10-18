@@ -59,3 +59,4 @@ await import('./validateSync.mjs');
 await import('./validateOnTheGo.mjs');
 
 await import('./validatePerfumePlan.mjs');
+await import('./validateSuggestionVisibility.mjs');

@@ -1,5 +1,6 @@
 import type { Activity, TripState, ZonePlace } from "../types";
 import { inferMealSlot } from "./mealSlots";
+import { perfumeSuggestionPlaces } from "./perfumePlan2027";
 
 export type VisualGroup = "activity" | "shopping" | "culture" | "food" | "travel";
 
@@ -73,12 +74,26 @@ export function candidateZonePlacesForDay(state: TripState, dayId: string): Zone
   );
   const dayZoneIds = new Set(day.zoneIds ?? []);
 
-  const ranked = state.zonePlaces
-    .filter((place) => !place.selected && (!place.suggestionDayIds || place.suggestionDayIds.includes(dayId)))
+  const persistedIds = new Set(state.zonePlaces.map(place => place.id));
+  const selectedActivityIds = new Set(state.activities.filter(a => a.included).map(a => a.id));
+  const places = [...state.zonePlaces, ...perfumeSuggestionPlaces().filter(place =>
+    !persistedIds.has(place.id) && !state.removedItems.some(item => item.id === place.id),
+  )];
+  const ranked = places
+    .filter((place) => {
+      if (place.selected || selectedActivityIds.has(`zone-activity-${place.id}`)) return false;
+      if (place.id.startsWith("perfume-option-")) {
+        // Keep the protected birthday and travel-only days unchanged. Preferred
+        // dates are hints, not a whitelist: today's itinerary determines fit.
+        return dayId !== "2027-01-07" && dayId >= "2026-12-26" && dayId <= "2027-01-08";
+      }
+      return !place.suggestionDayIds || place.suggestionDayIds.includes(dayId);
+    })
     .map((place) => {
       const zone = zoneById.get(place.zoneId);
+      const perfume = place.id.startsWith("perfume-option-");
       const explicitDay = place.suggestedDayId === dayId || Boolean(place.suggestionDayIds?.includes(dayId));
-      const dayZone = dayZoneIds.has(place.zoneId);
+      const dayZone = dayZoneIds.has(place.zoneId) || (perfume && active.some(a => a.zoneId === place.zoneId && !["hotel", "transport", "flight", "rest"].includes(a.category)));
       const recommendedDay = Boolean(zone?.recommendedDayIds.includes(dayId));
 
       let proximity = Number.POSITIVE_INFINITY;
@@ -94,6 +109,17 @@ export function candidateZonePlacesForDay(state: TripState, dayId: string): Zone
             distanceKm(place.lat as number, place.lon as number, activity.lat, activity.lon),
           ),
         );
+      }
+
+      // When the catalogue has an address but no verified coordinates, use
+      // only a conservative match to the neighbourhood centre. Never invent
+      // a shop pin or suggest detours based merely on the hotel location.
+      if (perfume && zone && sameCity(day.city, zone.city) && !Number.isFinite(proximity)) {
+        const visits = activePoints.filter(a => !["hotel", "transport", "flight", "rest"].includes(a.category) && !["hotel", "transport", "flight", "rest"].includes(a.kind));
+        if (visits.length) {
+          const zoneDistance = Math.min(...visits.map(a => distanceKm(zone.center.lat, zone.center.lon, a.lat, a.lon)));
+          if (zoneDistance <= 2) proximity = zoneDistance;
+        }
       }
 
       // 3.6 km is intentionally conservative: it surfaces genuinely nearby

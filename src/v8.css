@@ -60,3 +60,6 @@
 .candidateExplorer .zoneHeader>span{display:inline-block;margin-bottom:4px;color:#6755ee;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .candidateExplorer .selectPlaceBig{background:#211d3e;color:#fff}
 .candidateExplorer .selectPlaceBig:hover{filter:brightness(1.08)}
+.mealRecommendation{margin:12px 0;padding:14px;border:1px solid #dfc997;border-radius:14px;background:#fffaf0;color:#46361b}
+.mealRecommendation>strong{display:block;font-size:14px;line-height:1.5}
+.mealRecommendation p{margin:8px 0;font-size:13px;line-height:1.55}

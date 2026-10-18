@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { build } = createRequire(import.meta.resolve('vite'))('esbuild');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'japan-suggestions-'));
+try {
+  const bundle = path.join(dir,'test.cjs');
+  await build({stdin:{contents:`export {loadInitialState} from './src/hooks/useTripStore';
+    export {candidateZonePlacesForDay} from './src/utils/itineraryIntelligence';
+    export {ZoneExplorer} from './src/components/ZoneExplorer';
+    export {mealRecommendationFor} from './src/utils/mealRecommendations';
+    export {MealRecommendationCard} from './src/components/MealRecommendationCard';
+    export {buildDayRoute} from './src/utils/route';
+    export {renderToStaticMarkup} from 'react-dom/server'; export {createElement} from 'react';`,resolveDir:process.cwd()},bundle:true,platform:'node',format:'cjs',jsx:'automatic',loader:{'.css':'empty'},outfile:bundle});
+  const m=require(bundle);
+  globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+  const state=m.loadInitialState();
+  const renderDay=(s,dayId)=>{
+    const places=m.candidateZonePlacesForDay(s,dayId);
+    const zones=s.zones.filter(z=>places.some(p=>p.zoneId===z.id));
+    return m.renderToStaticMarkup(m.createElement(m.ZoneExplorer,{zones,places,dayId,dayLabel:dayId,onAdd:()=>{}}));
+  };
+  const jan2=renderDay(state,'2027-01-02');
+  assert.ok(jan2.includes('J-Scent')); assert.ok(jan2.includes('KITOWA')); assert.ok(jan2.includes('çanoma'));
+  assert.ok(jan2.includes('Todas las zonas'),'show suggestions from every zone without extra clicks');
+  assert.ok(jan2.includes('Torikizoku'),'generic Shimbashi dinner has a real restaurant on Jan 2');
+  const jan8=renderDay(state,'2027-01-08'); assert.ok(jan8.includes('J-Scent')&&jan8.includes('KITOWA'));
+  for(const day of ['2026-12-30','2026-12-31']) {
+    const html=renderDay(state,day); assert.ok(html.includes('U NOSE SHOP Shinsaibashi'),`Minami matches on ${day}`);
+  }
+  const oldCloud=structuredClone(state); oldCloud.zonePlaces=oldCloud.zonePlaces.filter(p=>!p.id.startsWith('perfume-option-'));
+  assert.ok(renderDay(oldCloud,'2027-01-02').includes('KITOWA'),'catalogue remains visible before cloud migration is persisted');
+  const kitowa=state.zonePlaces.find(p=>p.id==='perfume-option-kitowa');
+  oldCloud.activities.push({...state.activities[0],id:`zone-activity-${kitowa.id}`,dayId:'2027-01-02',included:true,title:kitowa.title,zoneId:kitowa.zoneId});
+  assert.ok(!m.candidateZonePlacesForDay(oldCloud,'2027-01-08').some(p=>p.id===kitowa.id),'selected activity suppresses read-time catalogue suggestion');
+  const moved=structuredClone(state); moved.days.find(d=>d.id==='2027-01-03').zoneIds=['tokyo-shibuya-aoyama'];
+  assert.ok(renderDay(moved,'2027-01-03').includes('SHOLAYERED'),'match live zone even outside original preferred dates');
+  moved.days.find(d=>d.id==='2027-01-03').zoneIds=[];
+  moved.activities=moved.activities.filter(a=>a.dayId!=='2027-01-03');
+  moved.activities.push({...state.activities.find(a=>a.id==='v7-5-perfume'),id:'live-near-ginza',dayId:'2027-01-03',zoneId:null,lat:35.675,lon:139.771,category:'shopping',kind:'shopping',included:true});
+  assert.ok(renderDay(moved,'2027-01-03').includes('KITOWA'),'match neighbourhood proximity to a live activity');
+  const birthday=renderDay(state,'2027-01-07'); assert.ok(!birthday.includes('perfume-option-')); assert.ok(!birthday.includes('Todas las zonas'));
+  for(const a of state.activities.filter(a=>a.dayId==='2027-01-07')) assert.equal(m.mealRecommendationFor(a),null);
+  const generic=state.activities.find(a=>a.id==='d27-dinner');
+  assert.ok(m.mealRecommendationFor(generic).name.includes('Shinobuan'));
+  const hotel=state.activities.find(a=>a.id==='d25-hotel'); assert.ok(m.mealRecommendationFor(hotel).name.includes('LUCUA'));
+  const nye=state.activities.find(a=>a.id==='v7-31-nye'); assert.ok(m.mealRecommendationFor(nye).name.includes('Harijyu'));
+  const custom={...generic,title:'Cena en mi restaurante reservado',place:'Mi restaurante'};
+  assert.equal(m.mealRecommendationFor(custom),null,'keep a specific restaurant chosen by the user');
+  const dinner={...generic,id:'custom-shimbashi-dinner',dayId:'2027-01-02',title:'Cena tranquila por Shimbashi',place:'Shimbashi',zoneId:'tokyo-arrival-shimbashi-hibiya',status:'idea'};
+  const proposal=m.mealRecommendationFor(dinner); assert.ok(proposal.address.includes('3F'));
+  const html=m.renderToStaticMarkup(m.createElement(m.MealRecommendationCard,{recommendation:proposal}));
+  assert.ok(html.includes('Cómo llegar al restaurante')&&html.includes('Menú y sitio oficial'));
+  const route=m.buildDayRoute(dinner.dayId,null,[{...dinner,order:0},{...dinner,id:'next',title:'Museo',order:1}],[],[]);
+  assert.ok(decodeURIComponent(route.segments[0].googleMapsUrl).includes('Torikizoku'),'route targets the proposed real restaurant');
+  console.log('Suggestion UI tests passed: Jan 2/8 visible by default, live zones/proximity, old cloud fallback, selected suppression, specific meal/map references, Jan 7 unchanged.');
+} finally {fs.rmSync(dir,{recursive:true,force:true});}
