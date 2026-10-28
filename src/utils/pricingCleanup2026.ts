@@ -43,7 +43,7 @@ export function applyCurrentActivityPricing(input: TripState): TripState {
     priceDynamic: true,
   });
 
-  updateActivity(state, "d27-usj", {
+  if (!state.notes?.["confirmed-usj-purchase-2026-10-27-v1"]) updateActivity(state, "d27-usj", {
     priceScope: "per_person",
     priceLabel:
       "US$197 por persona · paquete registrado en el viaje; USJ usa precio dinámico por fecha",

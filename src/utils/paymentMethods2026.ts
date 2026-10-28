@@ -1,6 +1,7 @@
 import type { TripState } from "../types";
 
 const PAYMENT_METHODS: Record<string, string> = {
+  "purchase-usj-2026-10-27": "Tarjeta terminada en 2724",
   "p-vuelos-internacionales-confirmados": "Tarjeta terminada en 0116",
   "purchase-hotel-osaka-monterey": "Tarjeta terminada en 0116",
   "purchase-hotel-tokyo-tokyustay": "Tarjeta terminada en 0116",
