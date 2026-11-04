@@ -40,6 +40,7 @@ import {
 import { applyBookingCalendarRebalanceV1 } from "../utils/bookingCalendar2026";
 import { applyConfirmedKlookPurchasesV1 } from "../utils/confirmedPurchases2026";
 import { applyConfirmedUniversalPurchaseV1 } from "../utils/confirmedUniversal2026";
+import { applyConfirmedDisneyPurchaseV1 } from "../utils/confirmedDisney2026";
 import { applyPaymentMethodRegister } from "../utils/paymentMethods2026";
 import {
   CURRENT_RECOVERY_BASELINE,
@@ -74,7 +75,8 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   const clarified = applyReservationPlanningCopy(priced);
   const confirmedPurchases = applyConfirmedKlookPurchasesV1(clarified);
   const confirmedUniversal = applyConfirmedUniversalPurchaseV1(confirmedPurchases.state);
-  const withPaymentMethods = applyPaymentMethodRegister(confirmedUniversal.state);
+  const confirmedDisney = applyConfirmedDisneyPurchaseV1(confirmedUniversal.state);
+  const withPaymentMethods = applyPaymentMethodRegister(confirmedDisney.state);
   // Recommendations may update metadata, but cannot delete or deselect the
   // protected input. In particular the NYE cleanup removed a selected record.
   const cleaned = syncMoneyPage(applyPerfumePlan2027(cleanState(recoverProtectedTrip(withPaymentMethods, state, false))));
@@ -92,7 +94,8 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
     dec26Route.migrated ||
     bookingRebalance.migrated ||
     confirmedPurchases.migrated ||
-    confirmedUniversal.migrated;
+    confirmedUniversal.migrated ||
+    confirmedDisney.migrated;
 
   if (migrationChangedSelections) {
     // Refresh the protected decisions produced by code migrations, but preserve

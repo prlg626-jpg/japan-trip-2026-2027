@@ -59,7 +59,7 @@ export function applyCurrentActivityPricing(input: TripState): TripState {
     priceDynamic: false,
   });
 
-  updateActivity(state, "d4-disney", {
+  if (!state.notes?.["confirmed-disneysea-purchase-2026-11-04-v1"]) updateActivity(state, "d4-disney", {
     priceScope: "per_person",
     priceOriginal: { currency: "JPY", unit: 10900, quantity: 1 },
     priceLabel:

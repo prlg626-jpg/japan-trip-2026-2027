@@ -82,7 +82,7 @@ export function applyReservationPlanningCopy(input: TripState): TripState {
     priceDynamic: false,
   });
 
-  patchActivity(state, "d4-disney", {
+  if (!state.notes?.["confirmed-disneysea-purchase-2026-11-04-v1"]) patchActivity(state, "d4-disney", {
     title: "Tokyo DisneySea",
     description:
       "Día completo en Tokyo DisneySea. Para el 4 de enero de 2027 el calendario oficial publicado muestra ¥9.900 por adulto.",
