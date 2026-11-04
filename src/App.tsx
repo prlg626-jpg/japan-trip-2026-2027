@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { ActivityEditor } from "./components/ActivityEditor";
 import { HotelEditor } from "./components/HotelEditor";
+import { PurchaseComparison } from "./components/PurchaseComparison";
 import { HotelLinkCard } from "./components/HotelLinkCard";
 import { ZoneExplorer } from "./components/ZoneExplorer";
 import { MealRecommendationCard } from "./components/MealRecommendationCard";
@@ -835,6 +836,7 @@ function App() {
                 </div>
               </section>
 
+              <div className="moneyHotelColumn">
               <section className="panelCard">
                 <div className="sectionTitle">
                   <h3>Hoteles</h3>
@@ -856,6 +858,8 @@ function App() {
                   ))}
                 </div>
               </section>
+              <PurchaseComparison purchases={state.purchases} />
+              </div>
             </div>
 
             <div className="sectionTitle">

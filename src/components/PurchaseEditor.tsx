@@ -159,6 +159,11 @@ export function PurchaseEditor({
           Confirmación
           <input value={draft.confirmationNumber} onChange={(event) => update("confirmationNumber", event.target.value)} />
         </label>
+        <label>
+          Tarjeta / medio de pago
+          <input value={draft.paymentMethodLabel ?? ""} placeholder="Tarjeta terminada en 2724"
+            onChange={(event) => update("paymentMethodLabel", event.target.value)} />
+        </label>
         <label className="full">
           Link
           <input value={draft.link} onChange={(event) => update("link", event.target.value)} />
