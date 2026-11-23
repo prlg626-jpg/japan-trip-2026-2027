@@ -100,10 +100,11 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
   },
   "v7-5-perfume": {
     activityId: "v7-5-perfume",
-    label: "5 ene 2027 · 11:00 deseada · cupos aún no publicados",
-    confidence: "estimated",
+    checkDate: "2026-11-23",
+    label: "23 nov: 5 ene 11:00 disponible para 2 · falta reservar",
+    confidence: "available",
     sourceUrl: "https://select-type.com/rsv/?c_id=307118&id=Sm2YMCAHYUc&pv_flg=1",
-    note: "Consultado el 17 oct 2026 (Bogotá): Standard muestra enero de 2027, pero el día 5 no es seleccionable y no ofrece horarios. No se confirma cupo a las 11:00 ni en la mañana; tampoco se interpreta como agotado. Sin regla oficial de apertura verificada. Una reserva permite hasta 2 personas. Reserva y pago pendientes.",
+    note: "Verificado el 23 nov 2026 en el calendario oficial: Standard, 5 ene 2027, 11:00, 2 personas permite llegar al formulario de datos. También aparecen 12:30, 14:00, 15:30, 17:00 y 18:30. Desde ¥34.000 para dos más extras. Falta enviar la reserva y recibir confirmación; no se ha retenido el cupo y puede cambiar.",
   },
   "v7-6-ring": {
     activityId: "v7-6-ring",
@@ -125,11 +126,11 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
   },
   "d7-spa": {
     activityId: "d7-spa",
-    checkDate: "2026-11-01",
-    label: "1 nov · fecha estimada para enero",
+    checkDate: "2026-11-23",
+    label: "Pareja pendiente de confirmación · contacto por WhatsApp",
     confidence: "estimated",
     sourceUrl: "https://omotesando.spa-kuu.com/en/",
-    note: "El calendario observado llega actualmente hasta 30 nov. Para 2 personas, Kuu indica que hay que escribirles por email; su sistema online acepta solo 1 huésped por reserva.",
+    note: "Solicitud del 1 nov: 7 ene 15:30, dos cursos Premium 120 min, cada uno con Head Soak y Scalp Carbonated Spray; referencia ¥74.000 ambos. Sin respuesta por correo encontrada al 23 nov. El usuario recibió acuse automático por WhatsApp; aún falta respuesta de disponibilidad. WhatsApp oficial +81 90 8771 5505, solo chat. Confirmar simultaneidad, duración y total antes de pagar; no reembolsable tras confirmar.",
   },
   "v7-8-teamlab": {
     activityId: "v7-8-teamlab",
@@ -144,8 +145,8 @@ export const BOOKING_RELEASE_RULES: Record<string, BookingReleaseRule> = {
     checkDate: "2026-10-01",
     label: "1 oct · empezar a revisar enero en OTA",
     confidence: "estimated",
-    sourceUrl: "https://web.global.brother/joyfactory/ja/index.html",
-    note: "JOYFACTORY vende únicamente por OTA y no publica una cadencia fija. Actualmente el calendario observado llega hasta diciembre; enero debe revisarse desde octubre.",
+    sourceUrl: "https://www.klook.com/activity/231519-brother-joyfactory-tokyo-entry-ticket-samurai-experience-tokyo/",
+    note: "23 nov: la web oficial enlaza Klook producto 231519, GetYourGuide y Viator. Falta verificar cupo del 8 ene. Entrada + Samurai ¥8.800 por persona; Karaoke Record se contrata dentro como extra. Tras comprar se debe completar el enlace del correo de Brother para obtener el QR del recinto.",
   },
   "d9-nex": {
     activityId: "d9-nex",

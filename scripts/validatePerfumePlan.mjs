@@ -51,7 +51,8 @@ try {
   activity.included=true;
   const reservation=m.selectedBookableReservations(result).find(r=>r.activityId===activity.id);
   assert.equal(reservation.estimatedPriceCOP,estimate);
-  assert.ok(reservation.link.includes('select-type.com')); assert.equal(reservation.bookingCheckDate,undefined);
+  assert.ok(reservation.link.includes('select-type.com')); assert.equal(reservation.bookingCheckDate,'2026-11-23');
+  assert.equal(reservation.bookingConfidence,'available');
   assert.ok(!/14 días|22 dic/.test(reservation.opens+reservation.reminderNotes));
   const route=m.buildDayRoute(activity.dayId,null,[activity,...result.activities.filter(a=>a.dayId===activity.dayId&&a.id!==activity.id)],[],result.routeSegments);
   assert.ok(route.points.some(p=>p.title.includes('LIBERTA')));

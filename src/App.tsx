@@ -42,6 +42,7 @@ import {
 import { ActivityEditor } from "./components/ActivityEditor";
 import { HotelEditor } from "./components/HotelEditor";
 import { PurchaseComparison } from "./components/PurchaseComparison";
+import { BookingReview } from "./components/BookingReview";
 import { HotelLinkCard } from "./components/HotelLinkCard";
 import { ZoneExplorer } from "./components/ZoneExplorer";
 import { MealRecommendationCard } from "./components/MealRecommendationCard";
@@ -901,6 +902,7 @@ function App() {
               ))}
             </div>
 
+            <BookingReview reservations={bookableReservations} />
             <div className="sectionTitle reservationSectionTitle">
               <div>
                 <h3>Qué tengo que reservar</h3>

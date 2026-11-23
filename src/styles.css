@@ -1249,3 +1249,10 @@ a {
 .goEmpty p { color:var(--muted); line-height:1.5; }
 @media (min-width: 900px) { .goLayout { grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr); } .goTimeline { position:sticky; top:18px; } }
 @media (max-width: 420px) { .goHero,.goFocus,.goEmpty,.goNext,.goHotel,.goTimeline { padding:18px; } .goCardHeading { flex-direction:column; gap:5px; } .goActions .goComplete { flex-basis:100%; } }
+
+.bookingReview { margin-top:24px; padding:20px; border:1px solid #dbcabb; border-radius:18px; background:#fffaf3; }
+.bookingReview > p { color:#66594e; font-size:.9rem; line-height:1.5; }
+.bookingReview details { padding:12px 0; border-top:1px solid #e8ddd1; }
+.bookingReview summary { cursor:pointer; font-weight:650; line-height:1.5; }
+.bookingReview summary small { font-weight:400; color:#66594e; }
+.bookingReview details p { line-height:1.6; margin:10px 0; }
