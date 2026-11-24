@@ -60,6 +60,9 @@ try {
   const values=new Map(); globalThis.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
   const fresh=m.loadInitialState();
   assert.ok(fresh.activities.find(a=>a.id===activity.id).title.includes('LIBERTA'));
+  assert.equal(fresh.activities.find(a=>a.id===activity.id).status,'reservada');
+  assert.ok(!m.selectedBookableReservations(fresh).some(r=>r.activityId===activity.id));
+  assert.ok(!fresh.purchases.some(p=>p.activityId===activity.id && p.status==='Pagado'),'appointment does not create a payment');
   const picked=fresh.zonePlaces.find(p=>p.id==='perfume-option-sholayered'); picked.selected=true; picked.suggestedDayId='2027-01-05';
   fresh.activities.find(a=>a.id===activity.id).note='Later live edit';
   fresh.activityBlackBox=m.captureActivityBlackBox(fresh); fresh.activityBlackBox.updatedAt='2026-10-17T23:00:00.000Z';
@@ -70,5 +73,5 @@ try {
   assert.equal(reloaded.zonePlaces.find(p=>p.id===picked.id).selected,true);
   assert.ok(!m.candidateZonePlacesForDay(reloaded,'2027-01-05').some(p=>p.id===picked.id),'selection disappears from suggestions');
   assert.equal(reloaded.activityBlackBox.updatedAt,fresh.activityBlackBox.updatedAt,'migration cannot masquerade as a newer live decision');
-  console.log(`Perfume integration passed: ${m.PERFUME_OPTIONS.length} verified optional locations; pending LIBERTA, cost for two, routes, Jan 7 unchanged, live edits/receipts, idempotence, selection/reload.`);
+  console.log(`Perfume integration passed: ${m.PERFUME_OPTIONS.length} optional locations; confirmed LIBERTA without payment, cost for two, routes, Jan 7 unchanged, live edits/receipts, idempotence, selection/reload.`);
 } finally { fs.rmSync(dir,{recursive:true,force:true}); }
