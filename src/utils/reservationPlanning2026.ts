@@ -1,4 +1,5 @@
 import type { TripState } from "../types";
+import { NOVEMBER_PAYMENTS_KEY, NOVEMBER_PAID_ACTIVITIES } from "./confirmedNovemberPayments2026";
 
 const DEC26_ROUTE_KEY = "dec26-route-review-2026-09-27-v1";
 
@@ -11,6 +12,7 @@ function patchActivity(
   id: string,
   patch: Partial<TripState["activities"][number]>,
 ) {
+  if (state.notes?.[NOVEMBER_PAYMENTS_KEY] && NOVEMBER_PAID_ACTIVITIES.includes(id)) return;
   const activity = state.activities.find((item) => item.id === id);
   if (activity) Object.assign(activity, patch);
 }

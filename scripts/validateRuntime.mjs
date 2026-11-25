@@ -50,7 +50,7 @@ assert.equal(reloadedUsj.purchases.filter(p => p.activityId === 'd27-usj').lengt
 assert.equal(reloadedUsj.purchases.find(p => p.activityId === 'd27-usj').amountCOP, 1800000);
 assert.equal(reloadedUsj.activities.find(a => a.id === 'd27-usj').priceScope, 'for_two');
 values = new Map();
-assert.deepEqual(counts(fresh), [124,121,110,80], 'runtime migrations must preserve protected totals');
+assert.deepEqual(counts(fresh), [124,120,110,80], 'preserve protected records; user explicitly deselected the ring workshop');
 assert.equal(values.get(marker), undefined, 'initial render must not prematurely mark durable recovery');
 const recent = structuredClone(fresh);
 recent.activities[0].note = 'Latest user note';
@@ -76,7 +76,7 @@ edited.zonePlaces.find(p=>p.selected).selected=false;
 edited.activityBlackBox = undefined;
 values = new Map([[key,JSON.stringify(edited)],[marker,'protected-124-2026-09-27']]);
 loaded=loadInitialState();
-assert.deepEqual(counts(loaded),[124,120,110,79],'completed recovery must respect subsequent user choices');
+assert.deepEqual(counts(loaded),[124,119,110,79],'completed recovery must respect subsequent user choices after excluding the ring workshop');
 const repaired = recoverProtectedTrip(legacy,baseline,true);
 assert.deepEqual(counts(repaired),[124,121,110,80]);
 assert.equal(legacy.activities.length,61,'repair never mutates its source');
