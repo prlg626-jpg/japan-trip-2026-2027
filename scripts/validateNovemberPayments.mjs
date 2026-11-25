@@ -38,6 +38,18 @@ try {
   assert.equal(reloaded.activities.find(a=>a.id==='v7-6-ring').included,false,'ring remains deselected');
   assert.equal(reloaded.activities.find(a=>a.id==='d25-shink').priceOriginal.unit,39180);
   assert.equal(m.applyConfirmedNovemberPayments(reloaded).migrated,false);
+  const nex = fresh.purchases.find(p=>p.activityId==='d25-nex');
+  assert.equal(nex.originalAmount,6660);
+  assert.equal(nex.paymentMethodLabel,'Tarjeta terminada en 0116');
+  assert.equal(nex.confirmationNumber,'E09044');
+  assert.equal(nex.category,'Transporte');
+  assert.equal(nex.receipt.driveUrl,'','private QR links stay out of the public repository');
+  assert.equal(fresh.activities.find(a=>a.id==='d25-nex').start,'14:45');
+  assert.equal(fresh.activities.find(a=>a.id==='d25-nex').end,'15:53');
+  assert.equal(reloaded.activities.find(a=>a.id==='d25-nex').priceOriginal.unit,6660);
+  assert.equal(reloaded.purchases.filter(p=>p.activityId==='d25-nex').length,1);
+  assert.ok(!fresh.purchases.find(p=>p.activityId==='d25-shink').notes.includes('por obtener'));
+  assert.ok(!m.selectedBookableReservations(fresh).some(r=>r.activityId==='d25-nex'));
   const budget=m.calculateBudget(fresh);
   console.log(JSON.stringify({payments:rows.map(({name,originalAmount,currency,amountCOP})=>({name,originalAmount,currency,amountCOP})),addedPaidCOP:rows.reduce((s,p)=>s+p.amountCOP,0),paidCOP:budget.paid,pendingCOP:budget.pending},null,2));
 } finally { fs.rmSync(dir,{recursive:true,force:true}); }

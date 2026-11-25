@@ -1,5 +1,6 @@
 import type { TripState } from "../types";
 import { NOVEMBER_PAYMENTS_KEY, NOVEMBER_PAID_ACTIVITIES } from "./confirmedNovemberPayments2026";
+import { NARITA_PAYMENT_KEY } from "./confirmedNarita2026";
 
 const DEC26_ROUTE_KEY = "dec26-route-review-2026-09-27-v1";
 
@@ -13,6 +14,7 @@ function patchActivity(
   patch: Partial<TripState["activities"][number]>,
 ) {
   if (state.notes?.[NOVEMBER_PAYMENTS_KEY] && NOVEMBER_PAID_ACTIVITIES.includes(id)) return;
+  if (state.notes?.[NARITA_PAYMENT_KEY] && id === "d25-nex") return;
   const activity = state.activities.find((item) => item.id === id);
   if (activity) Object.assign(activity, patch);
 }

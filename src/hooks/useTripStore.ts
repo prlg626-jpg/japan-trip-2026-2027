@@ -50,6 +50,7 @@ import { recoverProtectedTrip } from "../utils/protectedRecovery";
 import { applyPerfumePlan2027 } from "../utils/perfumePlan2027";
 import { applyConfirmedLibertaReservation } from "../utils/confirmedLiberta2026";
 import { applyConfirmedNovemberPayments } from "../utils/confirmedNovemberPayments2026";
+import { applyConfirmedNarita } from "../utils/confirmedNarita2026";
 
 const STORAGE_KEY = "japan-trip-2026-2027-state-v1";
 
@@ -82,7 +83,8 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
   // Recommendations may update metadata, but cannot delete or deselect the
   // protected input. In particular the NYE cleanup removed a selected record.
   const novemberPayments = applyConfirmedNovemberPayments(applyConfirmedLibertaReservation(applyPerfumePlan2027(cleanState(recoverProtectedTrip(withPaymentMethods, state, false)))));
-  const cleaned = cleanState(novemberPayments.state);
+  const naritaPurchase = applyConfirmedNarita(novemberPayments.state);
+  const cleaned = cleanState(naritaPurchase.state);
   const activityFlags = new Map(state.activities.map((item) => [item.id, item.included]));
   const placeFlags = new Map(state.zonePlaces.map((item) => [item.id, item.selected]));
   cleaned.activities.forEach((item) => {
@@ -98,7 +100,7 @@ function finalizeProtectedState(state: TripState, existingBlackBox?: TripState["
     bookingRebalance.migrated ||
     confirmedPurchases.migrated ||
     confirmedUniversal.migrated ||
-    confirmedDisney.migrated || novemberPayments.migrated;
+    confirmedDisney.migrated || novemberPayments.migrated || naritaPurchase.migrated;
 
   if (migrationChangedSelections) {
     // Refresh the protected decisions produced by code migrations, but preserve

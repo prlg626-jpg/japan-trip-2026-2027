@@ -1,5 +1,6 @@
 import type { TripState } from "../types";
 import { NOVEMBER_PAYMENTS_KEY, NOVEMBER_PAID_ACTIVITIES } from "./confirmedNovemberPayments2026";
+import { NARITA_PAYMENT_KEY } from "./confirmedNarita2026";
 
 const CLEANUP_KEY = "remove-placeholder-nye-dinner-2026-09-27-v1";
 const VERIFIED_AT = "2026-09-27";
@@ -10,6 +11,7 @@ function updateActivity(
   patch: Partial<TripState["activities"][number]>,
 ) {
   if (state.notes?.[NOVEMBER_PAYMENTS_KEY] && NOVEMBER_PAID_ACTIVITIES.includes(id)) return;
+  if (state.notes?.[NARITA_PAYMENT_KEY] && id === "d25-nex") return;
   const activity = state.activities.find((item) => item.id === id);
   if (activity) Object.assign(activity, patch);
 }
@@ -20,6 +22,7 @@ function updateCost(
   patch: Partial<TripState["costs"][number]>,
 ) {
   if (state.notes?.[NOVEMBER_PAYMENTS_KEY] && (NOVEMBER_PAID_ACTIVITIES.includes(id) || id === "d8-brother")) return;
+  if (state.notes?.[NARITA_PAYMENT_KEY] && id === "d25-nex") return;
   const cost = state.costs.find((item) => item.id === id);
   if (cost) Object.assign(cost, patch);
 }
